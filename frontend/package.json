@@ -1,0 +1,33 @@
+{
+  "name": "mosaic-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "host": "vite --host"
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.17",
+    "@types/node": "^20.8.2",
+    "@types/react": "^18.2.24",
+    "@types/react-dom": "^18.2.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "chart.js": "^4.4.0",
+    "chartjs-adapter-moment": "^1.0.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-flatpickr": "^3.10.13",
+    "react-router-dom": "^7.9.1",
+    "typescript": "^5.2.2",
+    "vite": "^7.1.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.6",
+    "@types/react-flatpickr": "^3.8.9",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.3"
+  }
+}

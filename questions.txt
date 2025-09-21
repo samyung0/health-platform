@@ -1,0 +1,3 @@
+
+- can students login with their own account or must be parents
+- do we calculate score base on score definitions

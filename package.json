@@ -1,0 +1,16 @@
+{
+  "name": "school-platform",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "docker:dev": "docker compose --env-file .env.development -f docker-compose.dev.yml up",
+    "docker:prod": "docker compose --env-file .env.production -f docker-compose.prod.yml up -d",
+    "interact": "docker exec -it school-platform-dev-db psql -U test -d postgres"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
