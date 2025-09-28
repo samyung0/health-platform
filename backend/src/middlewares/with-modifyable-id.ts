@@ -37,7 +37,7 @@ const withModifyableId: MiddlewareHandler<AppBindings> = async (c, next) => {
     throw new Error("Unauthorized");
   }
 
-  if (permissions.canAccessSameEntityNameInClassification) {
+  if (permissions.canAccessSameEntityInternalIdInClassification) {
     // students
     // all classifications should have same entity id and names
     // do not care active or not as student should be able to access all records for themselves
@@ -48,16 +48,15 @@ const withModifyableId: MiddlewareHandler<AppBindings> = async (c, next) => {
       .from(classification)
       .where(
         and(
-          eq(classification.schoolName, session.activeClassifications[0].schoolName),
-          eq(classification.schoolType, session.activeClassifications[0].schoolType),
-          eq(entity.name, session.activeClassifications[0].name)
+          eq(classification.schoolId, session.activeClassifications[0].schoolId),
+          eq(entity.internalId, session.activeClassifications[0].internalId)
         )
       )
       .leftJoin(entity, eq(classification.entityId, entity.id));
     permissionManager.queryableClassificationIds.push(
       ...queryableClassificationIds.map((classification) => classification.classificationId)
     );
-  } else if (permissions.canAccessChildEntityNameInClassification) {
+  } else if (permissions.canAccessChildEntityInternalIdInClassification) {
     // parent
     // get all children (assuming in same school now, if parents have children across school, use a new account), then access by entity name
     // should just have one single classification
@@ -84,12 +83,7 @@ const withModifyableId: MiddlewareHandler<AppBindings> = async (c, next) => {
       const queryableClassificationIds = await db
         .select({ classificationId: classification.id })
         .from(classification)
-        .where(
-          and(
-            eq(classification.schoolName, session.activeClassifications[i].schoolName),
-            eq(classification.schoolType, session.activeClassifications[i].schoolType)
-          )
-        );
+        .where(and(eq(classification.schoolId, session.activeClassifications[i].schoolId)));
       permissionManager.queryableClassificationIds.push(
         ...queryableClassificationIds.map((classification) => classification.classificationId)
       );
@@ -104,8 +98,7 @@ const withModifyableId: MiddlewareHandler<AppBindings> = async (c, next) => {
         .from(classification)
         .where(
           and(
-            eq(classification.schoolName, session.activeClassifications[i].schoolName),
-            eq(classification.schoolType, session.activeClassifications[i].schoolType),
+            eq(classification.schoolId, session.activeClassifications[i].schoolId),
             eq(classificationMap.year, session.activeClassifications[i].year!)
           )
         )
@@ -124,8 +117,7 @@ const withModifyableId: MiddlewareHandler<AppBindings> = async (c, next) => {
         .from(classification)
         .where(
           and(
-            eq(classification.schoolName, session.activeClassifications[i].schoolName),
-            eq(classification.schoolType, session.activeClassifications[i].schoolType),
+            eq(classification.schoolId, session.activeClassifications[i].schoolId),
             eq(classificationMap.year, session.activeClassifications[i].year!),
             eq(classificationMap.class, session.activeClassifications[i].class!)
           )

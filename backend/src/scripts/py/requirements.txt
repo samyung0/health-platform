@@ -1,0 +1,30 @@
+# Python dependencies for school platform Python scripts
+# Generated based on analysis of form_and_class.py, transcript.py, class_ranking.py, and whole_school.py
+
+# Core data processing libraries
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Excel file handling
+openpyxl>=3.0.0
+
+# File system operations (built-in, but listed for completeness)
+# os - built-in
+# glob - built-in
+# datetime - built-in
+# math - built-in
+# re - built-in
+
+# Additional dependencies that might be needed
+# (These are commonly used with pandas and openpyxl)
+xlrd>=2.0.0  # For reading older Excel files (.xls)
+xlsxwriter>=3.0.0  # For advanced Excel writing features
+
+# Optional: For better performance with large datasets
+# numba>=0.56.0  # JIT compilation for numerical functions
+# cython>=0.29.0  # For compiled extensions
+
+# Development and testing (optional)
+# pytest>=7.0.0  # For unit testing
+# black>=22.0.0  # Code formatting
+# flake8>=5.0.0  # Linting

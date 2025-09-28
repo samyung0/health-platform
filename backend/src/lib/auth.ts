@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { SessionContent } from "@/lib/types";
+import { Session, SessionContent } from "@/lib/types";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
@@ -23,10 +23,6 @@ export const auth = betterAuth({
   }),
   user: {
     additionalFields: {
-      name: {
-        type: "string",
-        required: true,
-      },
       username: {
         type: "string",
         required: true,
@@ -35,11 +31,15 @@ export const auth = betterAuth({
         type: "string",
         required: true,
       },
-      entityTypeId: {
+      entityType: {
         type: "string",
         required: true,
       },
       phoneNumber: {
+        type: "string",
+        required: false,
+      },
+      internalId: {
         type: "string",
         required: true,
       },
@@ -57,11 +57,12 @@ export const auth = betterAuth({
         .select({
           entityId: schema.entity.id,
           classificationId: schema.classification.id,
-          schoolName: schema.classification.schoolName,
-          schoolType: schema.classification.schoolType,
+          schoolId: schema.classification.schoolId,
+          schoolName: schema.school.name,
+          schoolType: schema.school.schoolType,
           year: schema.classificationMap.year,
           class: schema.classificationMap.class,
-          classNumber: schema.classificationMap.classNumber,
+          // classNumber: schema.classificationMap.classNumber,
           name: schema.entity.name,
           isChildOf: schema.entity.isChildOf,
           gender: schema.entity.gender,
@@ -69,12 +70,12 @@ export const auth = betterAuth({
           phoneNumberVerified: schema.entity.phoneNumberVerified,
           internalId: schema.entity.internalId,
           birthDate: schema.entity.birthDate,
-          entityTypeId: schema.entity.entityTypeId,
-          entityType: schema.entityType.name,
+          entityType: schema.entity.entityType,
           createdAt: schema.entity.createdAt,
           updatedAt: schema.entity.updatedAt,
           username: schema.entity.username,
-          isExpired: schema.classification.isExpired,
+          validFrom: schema.classification.validFrom,
+          validTo: schema.classification.validTo,
         })
         .from(schema.classification)
         .where(and(eq(schema.classification.entityId, user.id)))
@@ -84,13 +85,16 @@ export const auth = betterAuth({
         )
         .innerJoin(schema.entity, eq(schema.classification.entityId, schema.entity.id))
         .innerJoin(
-          schema.entityType,
-          eq(schema.entity.entityTypeId, schema.entityType.id)
+          schema.school,
+          eq(schema.classification.schoolId, schema.school.id)
         )) as SessionContent[];
       return {
-        activeClassifications: sessionData.filter((classification) => !classification.isExpired),
+        activeClassifications: sessionData.filter(
+          (classification) =>
+            !classification.validTo || Date.now() < classification.validTo.getTime()
+        ),
         allClassifications: sessionData,
-      };
+      } as Session;
     }),
     openAPI(),
   ],
@@ -134,6 +138,17 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: false,
+    password: {
+      hash: async (password) => {
+        return await Bun.password.hash(password, {
+          algorithm: "bcrypt",
+          cost: 10,
+        });
+      },
+      verify: async ({ password, hash }) => {
+        return await Bun.password.verify(password, hash);
+      },
+    },
   },
   advanced: {
     database: {

@@ -1,0 +1,170 @@
+[
+  {
+    "testName": "身高",
+    "exerciseName": null,
+    "unit": "厘米",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": null,
+    "isCalculatedAndReported": false,
+    "applicableToGender": "全部",
+    "applicableTo": {},
+    "compareDirection": "any"
+  },
+  {
+    "testName": "体重",
+    "exerciseName": null,
+    "unit": "千克",
+    "canBeExercised": false,
+    "exerciseScoreCalculationMethod": null,
+    "isCalculatedAndReported": false,
+    "applicableToGender": "全部",
+    "applicableTo": {},
+    "compareDirection": "any"
+  },
+  {
+    "testName": "体重指数（BMI）",
+    "exerciseName": null,
+    "unit": "千克/米2",
+    "canBeExercised": false,
+    "exerciseScoreCalculationMethod": null,
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {},
+    "compareDirection": "any"
+  },
+  {
+    "testName": "肺活量",
+    "exerciseName": null,
+    "unit": "毫升",
+    "canBeExercised": false,
+    "exerciseScoreCalculationMethod": null,
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {},
+    "compareDirection": "higher"
+  },
+  {
+    "testName": "50米跑",
+    "exerciseName": "50米跑",
+    "unit": "秒",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "average",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {},
+    "compareDirection": "lower"
+  },
+  {
+    "testName": "坐位体前屈",
+    "exerciseName": "坐位体前屈",
+    "unit": "厘米",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "count",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {},
+    "compareDirection": "higher"
+  },
+  {
+    "testName": "一分钟跳绳",
+    "exerciseName": "跳绳",
+    "unit": "次",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "average",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {
+      "小学": []
+    },
+    "compareDirection": "higher"
+  },
+  {
+    "testName": "一分钟仰卧起坐",
+    "exerciseName": "仰卧起坐",
+    "unit": "次",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "average",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {
+      "小学": ["三年级", "四年级", "五年级", "六年级"],
+      "初中": [],
+      "高中": [],
+      "大学": []
+    },
+    "compareDirection": "higher"
+  },
+  {
+    "testName": "50米×8往返跑",
+    "exerciseName": "50米×8往返跑",
+    "unit": "秒",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "average",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {
+      "小学": ["五年级", "六年级"]
+    },
+    "compareDirection": "lower"
+  },
+  {
+    "testName": "立定跳远",
+    "exerciseName": "立定跳远",
+    "unit": "厘米",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "count",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "全部",
+    "applicableTo": {
+      "初中": [],
+      "高中": [],
+      "大学": []
+    },
+    "compareDirection": "higher"
+  },
+  {
+    "testName": "引体向上",
+    "exerciseName": "引体向上",
+    "unit": "次",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "average",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "男",
+    "applicableTo": {
+      "初中": [],
+      "高中": [],
+      "大学": []
+    },
+    "compareDirection": "higher"
+  },
+  {
+    "testName": "1000米跑",
+    "exerciseName": "1000米跑",
+    "unit": "秒",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "average",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "男",
+    "applicableTo": {
+      "初中": [],
+      "高中": [],
+      "大学": []
+    },
+    "compareDirection": "lower"
+  },
+  {
+    "testName": "800米跑",
+    "exerciseName": "800米跑",
+    "unit": "秒",
+    "canBeExercised": true,
+    "exerciseScoreCalculationMethod": "average",
+    "isCalculatedAndReported": true,
+    "applicableToGender": "女",
+    "applicableTo": {
+      "初中": [],
+      "高中": [],
+      "大学": []
+    },
+    "compareDirection": "lower"
+  }
+]

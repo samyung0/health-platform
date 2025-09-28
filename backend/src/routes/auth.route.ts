@@ -1,7 +1,7 @@
-import { createRouter } from "@/lib/create-app";
 import { auth } from "@/lib/auth";
+import { createRouter } from "@/lib/create-app";
 
-const router = createRouter().all("/api/auth/**", (c) => {
+const router = createRouter().all("/**", (c) => {
   return auth.handler(c.req.raw);
 });
 

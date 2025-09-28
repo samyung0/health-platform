@@ -102,8 +102,8 @@
 // interface BaseQueryParams {
 //   sortBy?: string;
 //   sortOrder?: "asc" | "desc";
-//   validFromYear?: string;
-//   validToYear?: string;
+//   classificationValidFromYear?: string;
+//   classificationValidToYear?: string;
 // }
 
 // // Dynamic query parameters inferred from schema columns
@@ -182,14 +182,14 @@
 //       throw new Error(`Query param value for '${queryParamName}' is required`);
 //     }
 
-//     if (queryParamName === "validFromYear" || queryParamName === "validToYear") {
+//     if (queryParamName === "classificationValidFromYear" || queryParamName === "classificationValidToYear") {
 //       if (Array.isArray(paramValue)) {
 //         // TODO: custom errors
 //         throw new Error(`Valid from and to year query params should not be an array`);
 //       }
 
 //       filters.push(
-//         queryParamName === "validFromYear"
+//         queryParamName === "classificationValidFromYear"
 //           ? gt(
 //               classification.validTo,
 //               new Date(parseInt(paramValue as string), DEFAULT_OUTDATED_MONTH, DEFAULT_OUTDATED_DAY)

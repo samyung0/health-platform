@@ -10,10 +10,13 @@
     "jsxImportSource": "hono/jsx",
     "baseUrl": "./",
     "outDir": "./dist",
+    "declaration": true,
+    "composite": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/data/**/*.json"],
   "tsc-alias": {
     "resolveFullPaths": true
   }
