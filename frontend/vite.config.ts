@@ -1,38 +1,20 @@
 import react from "@vitejs/plugin-react";
 import path from "path";
-import { defineConfig, loadEnv } from "vite";
-import postcss from "./postcss.config.js";
+import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  // Load env files from project root (parent directory)
-  const env = loadEnv(mode, path.resolve(__dirname, ".."), "");
-
-  return {
-    define: {
-      "process.env": process.env,
+export default defineConfig({
+  envDir: "../",
+  plugins: [react()],
+  resolve: {
+    alias: {
+      "~": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "../backend/src"),
     },
-    css: {
-      postcss,
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
     },
-    plugins: [react()],
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src"),
-      },
-    },
-    build: {
-      commonjsOptions: {
-        transformMixedEsModules: true,
-      },
-    },
-    server: {
-      port: 3001,
-      host: true, // Allow external connections
-    },
-    preview: {
-      port: 3001,
-      host: true,
-    },
-  };
+  },
 });

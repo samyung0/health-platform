@@ -1,42 +1,61 @@
-'use client'
+"use client";
 
-import Flatpickr from 'react-flatpickr'
-import { Hook, Options } from 'flatpickr/dist/types/options'
+import * as React from "react";
+import { addDays, format } from "date-fns";
 
-export default function Datepicker({ align }: {
-  align?: 'left' | 'right'
-}) {
+import { cn } from "../lib/utils";
+import { Calendar } from "./ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
-  const onReady: Hook = (selectedDates, dateStr, instance) => {
-    (instance.element as HTMLInputElement).value = dateStr.replace('to', '-')
-    const customClass = align ?? ''
-    instance.calendarContainer.classList.add(`flatpickr-${customClass}`)
-  }
-
-  const onChange: Hook = (selectedDates, dateStr, instance) => {
-    (instance.element as HTMLInputElement).value = dateStr.replace('to', '-')
-  }
-
-  const options: Options = {
-    mode: 'range',
-    static: true,
-    monthSelectorType: 'static',
-    dateFormat: 'M j, Y',
-    defaultDate: [new Date().setDate(new Date().getDate() - 6), new Date()],
-    prevArrow: '<svg class="fill-current" width="7" height="11" viewBox="0 0 7 11"><path d="M5.4 10.8l1.4-1.4-4-4 4-4L5.4 0 0 5.4z" /></svg>',
-    nextArrow: '<svg class="fill-current" width="7" height="11" viewBox="0 0 7 11"><path d="M1.4 10.8L0 9.4l4-4-4-4L1.4 0l5.4 5.4z" /></svg>',
-    onReady,
-    onChange,
-  }
+export default function DatePickerWithRange({ className }: { className?: string }) {
+  const [date, setDate] = React.useState<
+    | {
+        from: Date | undefined;
+        to?: Date | undefined;
+      }
+    | undefined
+  >({
+    from: new Date(2022, 0, 20),
+    to: addDays(new Date(2022, 0, 20), 20),
+  });
 
   return (
-    <div className="relative">
-      <Flatpickr className="form-input pl-9 dark:bg-slate-800 text-slate-500 hover:text-slate-600 dark:text-slate-300 dark:hover:text-slate-200 font-medium w-[15.5rem]" options={options} />
-      <div className="absolute inset-0 right-auto flex items-center pointer-events-none">
-        <svg className="w-4 h-4 fill-current text-slate-500 dark:text-slate-400 ml-3" viewBox="0 0 16 16">
-          <path d="M15 2h-2V0h-2v2H9V0H7v2H5V0H3v2H1a1 1 0 00-1 1v12a1 1 0 001 1h14a1 1 0 001-1V3a1 1 0 00-1-1zm-1 12H2V6h12v8z" />
-        </svg>
-      </div>
+    <div className={cn("grid gap-2", className)}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            className={cn(
+              "btn px-2.5 min-w-[15.5rem] bg-white border-gray-200 hover:border-gray-300 dark:border-gray-700/60 dark:hover:border-gray-600 dark:bg-gray-800 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-medium text-left justify-start",
+              !date && "text-muted-foreground"
+            )}
+          >
+            {/* <CalendarIcon /> */}
+            <svg
+              className="fill-current text-gray-400 dark:text-gray-500 ml-1 mr-2"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+            >
+              <path d="M5 4a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H5Z"></path>
+              <path d="M4 0a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4H4ZM2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Z"></path>
+            </svg>
+            {date?.from ? (
+              date.to ? (
+                <>
+                  {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+                </>
+              ) : (
+                format(date.from, "LLL dd, y")
+              )
+            ) : (
+              <span>Pick a date</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="range" defaultMonth={date?.from} selected={date} onSelect={setDate} />
+        </PopoverContent>
+      </Popover>
     </div>
-  )
+  );
 }
