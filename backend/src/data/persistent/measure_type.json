@@ -23,9 +23,9 @@
   },
   {
     "testName": "体重指数（BMI）",
-    "exerciseName": null,
+    "exerciseName": "体重指数（BMI）",
     "unit": "千克/米2",
-    "canBeExercised": false,
+    "canBeExercised": true,
     "exerciseScoreCalculationMethod": null,
     "isCalculatedAndReported": true,
     "applicableToGender": "全部",

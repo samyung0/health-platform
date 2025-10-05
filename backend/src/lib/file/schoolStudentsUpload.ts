@@ -14,13 +14,14 @@ import {
   DEFAULT_OUTDATED_MONTH,
   EXPECTED_HEADERS_FROM_SCHOOL_STUDENTS_EXPORT,
 } from "@/lib/const";
-import { readSchoolTestExcel } from "@/lib/excelReader";
+import { readSchoolTestExcel } from "@/lib/excelOperations";
 import { uploadStudentInfoValidator } from "@/lib/validators";
 import { and, eq } from "drizzle-orm";
 import z from "zod";
 
 import { auth } from "@/lib/auth";
 import { Session } from "@/lib/types";
+import { mapYearToChinese } from "@/lib/util";
 
 interface SchoolStudentExcelValidatorResult {
   fileProcessId?: string;
@@ -39,7 +40,7 @@ export const schoolStudentsUpload = async (
   copyFilePath: string,
   session: Session
 ): Promise<SchoolStudentExcelValidatorResult> => {
-  const { schoolId } = session.activeClassifications[0];
+  const { schoolId, entityId } = session.activeClassifications[0];
   console.log("Received file request for student info upload: ", Object.entries(config));
 
   let data: string[][] = [];
@@ -60,6 +61,8 @@ export const schoolStudentsUpload = async (
           isUploadRequested: true,
           status: "failed",
           fileId: fileStorage_.id,
+          requestedByEntityId: entityId,
+          originalFileName: file.name,
         })
         .returning();
       await tx.insert(fileProcessMessage).values({
@@ -76,9 +79,6 @@ export const schoolStudentsUpload = async (
     };
   }
 
-  // TODO ADD SESSION
-
-  // check if dawei format
   const headers = data[0];
   const headersToProcess = EXPECTED_HEADERS_FROM_SCHOOL_STUDENTS_EXPORT; // should not fail because of validator
   if (
@@ -101,6 +101,8 @@ export const schoolStudentsUpload = async (
           isUploadRequested: true,
           status: "failed",
           fileId: fileStorage_.id,
+          requestedByEntityId: entityId,
+          originalFileName: file.name,
         })
         .returning();
       await tx.insert(fileProcessMessage).values({
@@ -134,6 +136,8 @@ export const schoolStudentsUpload = async (
         status: "pending",
         processStartDate: new Date(),
         fileId: fileStorage_.id,
+        requestedByEntityId: entityId,
+        originalFileName: file.name,
       })
       .returning();
     return fileProcess_;
@@ -141,12 +145,11 @@ export const schoolStudentsUpload = async (
 
   // TODO: implement proper queues
   setTimeout(async () => {
+    const tStart = performance.now();
     console.log("Processing file request for student info upload: ", fileProcess_.id);
 
     // process each record
-    // column 0,1 are dawei internal id, skip
-    // column 3,4,7,8 are empty, skip
-
+    // row 0-5: year, class, name, gender, internal id, id number
     try {
       const failedRecordsIndices: number[] = [];
       // not retrying if failed for second time, directly push error message to db, hence we just store students name & class
@@ -167,12 +170,16 @@ export const schoolStudentsUpload = async (
             ? data
             : data.filter((_, index) => recordsToProcess.includes(index));
 
+        if (recordsToProcess !== "all") {
+          console.log("Re-Processing records: ", dataToProcess);
+        }
+
         for (let i = 1; i < dataToProcess.length; i++) {
           const year = dataToProcess[i][0];
           const class_ = dataToProcess[i][1];
           const name = dataToProcess[i][2];
           const gender = dataToProcess[i][3];
-          const internalId = dataToProcess[i][4];
+          const internalId = dataToProcess[i][4].toString();
           const idNumber = dataToProcess[i][5]; // not used
 
           await db.transaction(async (tx) => {
@@ -186,8 +193,18 @@ export const schoolStudentsUpload = async (
                 .innerJoin(classification, eq(entity.id, classification.entityId))
                 .limit(1);
               let entityId = existingEntity.length > 0 ? existingEntity[0].entity.id : null;
+              console.log("Existing entity: ", existingEntity);
               if (existingEntity.length == 0) {
                 // create
+                console.log(
+                  "Creating entity: ",
+                  year,
+                  class_,
+                  name,
+                  internalId,
+                  schoolId,
+                  internalId.toLowerCase()
+                );
                 const response = await auth.api.signUpEmail({
                   body: {
                     email: `${internalId}_${schoolId}@school.com`, // dummy email, not used
@@ -242,13 +259,15 @@ export const schoolStudentsUpload = async (
                 )
               ) {
                 // skip making new classification
-                db.insert(fileProcessMessage).values({
-                  fileProcessId: fileProcess_.id,
-                  message: `跳过记录: ${dataToProcess[i].join(", ")}，已存在有效学生记录 (${
-                    config.from
-                  }年-${config.to}年)`,
-                  severity: "warning",
-                });
+                db.insert(fileProcessMessage)
+                  .values({
+                    fileProcessId: fileProcess_.id,
+                    message: `跳过记录: ${dataToProcess[i].join(", ")}，已存在有效学生记录 (${
+                      config.from
+                    }年-${config.to}年)`,
+                    severity: "warning",
+                  })
+                  .then();
                 // TODO LOG WARNING
                 console.warn(
                   `跳过记录: ${dataToProcess[i].join(", ")}，已存在有效学生记录 (${config.from}年-${
@@ -269,7 +288,7 @@ export const schoolStudentsUpload = async (
                 .returning();
               await tx.insert(classificationMap).values({
                 classificationId: classification_.id,
-                year: year,
+                year: mapYearToChinese(year),
                 class: class_,
               });
             } catch (error) {
@@ -314,15 +333,18 @@ export const schoolStudentsUpload = async (
             ", not retrying..."
           );
           for (const record of failedRecordsIndicesSecondTime) {
-            db.insert(fileProcessMessage).values({
-              fileProcessId: fileProcess_.id,
-              message: `系统错误: 无法处理 ${record} 的记录`,
-              severity: "warning",
-            });
+            db.insert(fileProcessMessage)
+              .values({
+                fileProcessId: fileProcess_.id,
+                message: `系统错误: 无法处理 ${record} 的记录`,
+                severity: "warning",
+              })
+              .then();
           }
           // count as failed if exceed threshold
           if (failedRecordsIndicesSecondTime.length > data.length * 0.05) {
-            db.update(fileProcess)
+            await db
+              .update(fileProcess)
               .set({
                 status: "failed",
               })
@@ -332,7 +354,16 @@ export const schoolStudentsUpload = async (
         }
       }
 
-      db.update(fileProcess)
+      const tEnd = performance.now();
+      await db.insert(fileProcessMessage).values({
+        fileProcessId: fileProcess_.id,
+        message: `文件处理完成：学生信息（${config.from}年-${config.to}年）\n新增记录: ${
+          data.length - failedRecordsIndicesSecondTime.length
+        }，  失败记录: ${failedRecordsIndicesSecondTime.length}\n用时: ${(tEnd - tStart) / 1000}s`,
+        severity: "info",
+      });
+      await db
+        .update(fileProcess)
         .set({
           status: "completed",
           processEndDate: new Date(Date.now()),
@@ -346,12 +377,15 @@ export const schoolStudentsUpload = async (
           status: "failed",
           processEndDate: new Date(Date.now()),
         })
-        .where(eq(fileProcess.id, fileProcess_.id));
-      db.insert(fileProcessMessage).values({
-        fileProcessId: fileProcess_.id,
-        message: `系统错误: 无法处理文件`,
-        severity: "error",
-      });
+        .where(eq(fileProcess.id, fileProcess_.id))
+        .then();
+      db.insert(fileProcessMessage)
+        .values({
+          fileProcessId: fileProcess_.id,
+          message: `系统错误: 无法处理文件`,
+          severity: "error",
+        })
+        .then();
       // TODO LOG ERROR
       console.error(error);
     }

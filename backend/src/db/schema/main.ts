@@ -7,33 +7,7 @@ import {
   recordNatureEnum,
 } from "@/db/schema/enum";
 import { sql } from "drizzle-orm";
-import { boolean, pgTable, real, smallint, text, timestamp } from "drizzle-orm/pg-core";
-
-// export const measureType = pgTable("measure_type", {
-//   id: text("id")
-//     .primaryKey()
-//     .default(sql`gen_random_uuid()`),
-//   testName: testNameEnum("test_name").notNull().unique(),
-//   exerciseName: exerciseNameEnum("exercise_name").unique(),
-//   unit: text("unit").notNull(),
-//   canBeExercised: boolean("can_be_exercised").notNull().default(false),
-//   exerciseScoreCalculationMethod: exerciseScoreCalculationMethodEnum(
-//     "exercise_score_calculation_method"
-//   ),
-//   isDerived: boolean("is_derived").notNull().default(false),
-//   applicableToGender: applicableToGenderEnum("applicable_to_gender").notNull(),
-//   applicableToGeneralClassification: text("applicable_to_general_classification")
-//     .notNull()
-//     .references(() => generalClassification.id),
-// });
-
-// export const recordNature = pgTable("record_nature", {
-//   id: text("id")
-//     .primaryKey()
-//     .default(sql`gen_random_uuid()`),
-//   inSchool: boolean("in_school").notNull().default(false),
-//   name: recordNatureEnum("name").notNull(),
-// });
+import { boolean, jsonb, pgTable, real, smallint, text, timestamp } from "drizzle-orm/pg-core";
 
 export const record = pgTable("record", {
   id: text("id")
@@ -44,9 +18,14 @@ export const record = pgTable("record", {
   nature: recordNatureEnum("nature").notNull(),
   fitnessTestId: text("fitness_test_id").references(() => fitnessTest.id),
   score: real("score"),
+  exerciseScore: real("exercise_score"),
   normalizedScore: real("normalized_score"),
   additionalScore: real("additional_score"),
-  exerciseDuration: smallint("exercise_duration"), //seconds, max 32766
+  exerciseDuration: smallint("exercise_duration"), //minutes, max 32766
+  exerciseDate: timestamp("exercise_date", {
+    mode: "date",
+    precision: 0,
+  }),
   videoUrl: text("video_url"),
   toEntityClassification: text("to_entity_classification")
     .notNull()
@@ -56,9 +35,6 @@ export const record = pgTable("record", {
     .references(() => classification.id),
   grade: text("grade"),
   isRedoOrMissingUpload: boolean("is_redo_or_missing_upload").notNull().default(false),
-  isRedoOrMissingUploadTargetFitnesstTestId: text(
-    "is_redo_or_missing_upload_target_fitnesst_test_id"
-  ).references(() => fitnessTest.id),
   createdAt: timestamp("created_at", {
     mode: "date",
     precision: 3,
@@ -199,6 +175,8 @@ export const permission = pgTable("permission", {
   )
     .notNull()
     .default(false),
+  canUploadSchoolTest: boolean("can_upload_school_test").notNull().default(false),
+  canUploadStudentInfo: boolean("can_upload_student_info").notNull().default(false),
 });
 
 export const classificationMap = pgTable("classification_map", {
@@ -213,153 +191,40 @@ export const classificationMap = pgTable("classification_map", {
     .references(() => classification.id),
 });
 
-// usage
-// 1. classifying if exercise can be done in primary school/secondary/uni
-// export const generalClassification = pgTable("general_classification", {
-//   id: text("id")
-//     .primaryKey()
-//     .default(sql`gen_random_uuid()`),
-// });
-
-// export const generalClassificationMap = pgTable("general_classification_map", {
-//   id: text("id")
-//     .primaryKey()
-//     .default(sql`gen_random_uuid()`),
-//   schoolType: schoolTypeEnum("school_type"), //大学初高中小学
-//   year: text("year"),
-//   generalClassificationId: text("general_classification_id")
-//     .notNull()
-//     .references(() => generalClassification.id),
-// });
-
-// export const grading = pgTable(
-//   "grading",
-//   {
-//     id: text("id")
-//       .primaryKey()
-//       .default(sql`gen_random_uuid()`),
-//     measureTypeId: text("measure_type_id")
-//       .notNull()
-//       .references(() => measureType.id),
-//     generalClassificationId: text("general_classification_id")
-//       .notNull()
-//       .references(() => generalClassification.id),
-//     gender: applicableToGenderEnum("gender").notNull(),
-//     score: real("score"),
-//     scoreUpperRange: real("score_upper_range"),
-//     scoreLowerRange: real("score_lower_range"),
-//     normalizedScore: real("normalized_score").notNull(),
-//     grade: text("grade").notNull(),
-//   },
-//   (table) => [
-//     check("score_range", sql`score_upper_range > score_lower_range`),
-//     check(
-//       "either_score_or_score_range",
-//       sql`(score IS NOT NULL AND score_upper_range IS NULL AND score_lower_range IS NULL) OR (score IS NULL AND ( score_upper_range IS NOT NULL OR score_lower_range IS NOT NULL))`
-//     ),
-//   ]
-// );
-
-// export const fitnessTestCombinedGrading = pgTable("fitness_test_combined_grading", {
-//   id: text("id")
-//     .primaryKey()
-//     .default(sql`gen_random_uuid()`),
-//   normalizedScoreGreaterThanOrEqualTo: real("normalized_score_greater_than_or_equal_to").notNull(),
-//   normalizedScoreLessThan: real("normalized_score_less_than").notNull(),
-//   name: text("name").notNull().unique(),
-// });
-
-// export const fitnessTestWeighting = pgTable(
-//   "fitness_test_weighting",
-//   {
-//     id: text("id")
-//       .primaryKey()
-//       .default(sql`gen_random_uuid()`),
-//     measureTypeId: text("measure_type_id")
-//       .notNull()
-//       .references(() => measureType.id),
-//     generalClassificationId: text("general_classification_id")
-//       .notNull()
-//       .references(() => generalClassification.id),
-//     weighting: real("weighting").notNull(),
-//   },
-//   (table) => [
-//     uniqueIndex("unique_weighting").on(table.measureTypeId, table.generalClassificationId),
-//   ]
-// );
-
-// export const additionalScore = pgTable(
-//   "additional_score",
-//   {
-//     id: text("id")
-//       .primaryKey()
-//       .default(sql`gen_random_uuid()`),
-//     measureTypeId: text("measure_type_id")
-//       .notNull()
-//       .references(() => measureType.id),
-//     generalClassificationId: text("general_classification_id")
-//       .notNull()
-//       .references(() => generalClassification.id),
-//     gender: text("gender"),
-//     offset: real("offset"),
-//     offsetCondition: offsetConditionEnum("offset_condition").notNull(),
-//     additionalScore: real("additional_score").notNull(),
-//   },
-//   (table) => [
-//     uniqueIndex("unique_additional_score").on(
-//       table.measureTypeId,
-//       table.generalClassificationId,
-//       table.gender,
-//       table.offset
-//     ),
-//   ]
-// );
-
 // TODO: return prev generated test reports if data are same?
 export const fitnessTest = pgTable("fitness_test", {
   // one per whole school
-  // TODO: add logic to generate results
   id: text("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   schoolId: text("school_id")
     .notNull()
     .references(() => school.id),
-  name: text("name").notNull(),
+  name: text("name").notNull().unique(),
   fitnessTestDate: timestamp("fitness_test_date", {
     mode: "date",
     precision: 3,
     withTimezone: true,
   }).notNull(),
-});
-
-export const fitnessTestOverallGrade = pgTable("fitness_test_overall_grade", {
-  id: text("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  fitnessTestId: text("fitness_test_id")
-    .notNull()
-    .references(() => fitnessTest.id),
-  baseScore: real("base_score").notNull(),
-  additionalScore: real("additional_score").notNull(),
-  grade: text("grade").notNull(),
-  toClassification: text("to_classification")
-    .notNull()
-    .references(() => classification.id),
-  createdAt: timestamp("created_at", {
-    mode: "date",
-    precision: 3,
-    withTimezone: true,
-  })
-    .defaultNow()
+  mainUploadYearsAndClassesScoresGrades: jsonb("main_upload_years_and_classes_scores_grades")
+    .$type<Record<string, Record<string, string[]>>>() // [avgScore, avgGrade, passingRate]
+    .default({})
     .notNull(),
-  updatedAt: timestamp("updated_at", {
-    mode: "date",
-    precision: 3,
-    withTimezone: true,
-  })
-    .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
+  redoOrMissingUploadYearsAndClassesScoresGrades: jsonb(
+    "redo_or_missing_upload_years_and_classes_scores_grades"
+  )
+    .$type<Record<string, Record<string, string[]>>>()
+    .default({})
+    .notNull(),
+  mainUploadYearsAndClassesProcessed: jsonb("main_upload_years_and_classes_processed")
+    .$type<Record<string, string[]>>()
+    .default({})
+    .notNull(),
+  redoOrMissingUploadYearsAndClassesProcessed: jsonb(
+    "redo_or_missing_upload_years_and_classes_processed"
+  )
+    .$type<Record<string, string[]>>()
+    .default({})
     .notNull(),
 });
 
@@ -369,7 +234,6 @@ export const fileProcess = pgTable("file_process", {
     .default(sql`gen_random_uuid()`),
   fileRequestNature: fileRequestNatureEnum("file_request_nature").notNull(),
   isUploadRequested: boolean("is_upload_requested").notNull().default(false),
-  isUploadedFileStored: boolean("is_uploaded_file_stored").notNull().default(false), // even if false, we will create a fileStorage entry, but path will only the filename instead of with drive names
   fileId: text("file_id").references(() => fileStorage.id),
   requestedAt: timestamp("requested_at", {
     mode: "date",
@@ -391,6 +255,10 @@ export const fileProcess = pgTable("file_process", {
     withTimezone: true,
   }),
   status: fileProcessStatusEnum("status").notNull(),
+  requestedByEntityId: text("requested_by_entity_id")
+    .notNull()
+    .references(() => entity.id),
+  originalFileName: text("original_file_name"),
 });
 
 export const fileProcessMessage = pgTable("file_process_message", {

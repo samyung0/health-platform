@@ -1,0 +1,9 @@
+frontend
+-- 404 page chinese
+-- clean up chart theme change code
+-- table 
+
+
+backend
+-py script, check dashboard result = report from py scripts
+- use internal id instead of name

@@ -1,3 +1,2 @@
-
-- can students login with their own account or must be parents
-- do we calculate score base on score definitions
+-does teacher manually upload data? or its in dawei already when equipment measures data
+then will data get updated? how often? (need to sync db)

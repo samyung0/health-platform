@@ -52,11 +52,13 @@ const withQueryableId: MiddlewareHandler<AppBindings> = async (c, next) => {
           eq(entity.internalId, session.allClassifications[0].internalId)
         )
       )
-      .leftJoin(entity, eq(classification.entityId, entity.id));
+      .innerJoin(entity, eq(classification.entityId, entity.id));
     permissionManager.queryableClassificationIds.push(
       ...queryableClassificationIds.map((classification) => classification.classificationId)
     );
-  } else if (permissions.canAccessChildEntityInternalIdInClassification) {
+  }
+
+  if (permissions.canAccessChildEntityInternalIdInClassification) {
     // parent
     // get all children (assuming in same school now, if parents have children across school, use a new account), then access by entity name
     // should just have one single classification
@@ -74,32 +76,39 @@ const withQueryableId: MiddlewareHandler<AppBindings> = async (c, next) => {
     permissionManager.queryableClassificationIds.push(
       ...queryableClassificationIds.map((classification) => classification.classificationId)
     );
-  } else if (permissions.canAccessSchoolInClassification) {
+  }
+
+  if (permissions.canAccessSchoolInClassification) {
     // principals or someone who has access to all records in same school (school name + type)
     // need active classifications
     // in: active classification
     // out (queryable): all classifications with same school name and type
-    for (let i = 0; i < session.activeClassifications.length; i++) {
-      const queryableClassificationIds = await db
-        .select({ classificationId: classification.id })
-        .from(classification)
-        .where(and(eq(classification.schoolId, session.activeClassifications[i].schoolId)));
-      permissionManager.queryableClassificationIds.push(
-        ...queryableClassificationIds.map((classification) => classification.classificationId)
-      );
-    }
-  } else if (permissions.canAccessYearInClassification) {
+
+    // same school throughout entity lifetime
+    const queryableClassificationIds = await db
+      .select({ classificationId: classification.id })
+      .from(classification)
+      .where(and(eq(classification.schoolId, session.activeClassifications[0].schoolId)));
+    permissionManager.queryableClassificationIds.push(
+      ...queryableClassificationIds.map((classification) => classification.classificationId)
+    );
+  }
+
+  if (permissions.canAccessYearInClassification) {
     // teachers responsible for whole year
     // in: active classification
     // out (queryable): all classifications with same year
+
+    // only this year, so to needs to be active and from needs to be active
     for (let i = 0; i < session.activeClassifications.length; i++) {
+      if (!session.activeClassifications[0].year) continue;
       const queryableClassificationIds = await db
         .select({ classificationId: classification.id })
         .from(classification)
         .where(
           and(
-            eq(classification.schoolId, session.activeClassifications[i].schoolId),
-            eq(classificationMap.year, session.activeClassifications[i].year!)
+            eq(classification.schoolId, session.allClassifications[i].schoolId),
+            eq(classificationMap.year, session.allClassifications[i].year!)
           )
         )
         .leftJoin(classificationMap, eq(classification.id, classificationMap.classificationId));
@@ -107,11 +116,15 @@ const withQueryableId: MiddlewareHandler<AppBindings> = async (c, next) => {
         ...queryableClassificationIds.map((classification) => classification.classificationId)
       );
     }
-  } else if (permissions.canAccessClassInClassification) {
+  }
+
+  if (permissions.canAccessClassInClassification) {
     // teachers responsible for whole class
     // in: active classification
     // out (queryable): all classifications with same year and class
     for (let i = 0; i < session.activeClassifications.length; i++) {
+      if (!session.activeClassifications[0].year || !session.activeClassifications[0].class)
+        continue;
       const queryableClassificationIds = await db
         .select({ classificationId: classification.id })
         .from(classification)
@@ -129,16 +142,15 @@ const withQueryableId: MiddlewareHandler<AppBindings> = async (c, next) => {
     }
   }
 
-  permissionManager.queryableClassificationIds.push(
-    ...session.activeClassifications.map((classification) => classification.classificationId)
-  );
+  // permissionManager.queryableClassificationIds.push(
+  //   ...session.allClassifications.map((classification) => classification.classificationId)
+  // );
 
   permissionManager.queryableClassificationIds = [
     ...new Set(permissionManager.queryableClassificationIds),
   ];
 
   c.set("permissionManager", permissionManager);
-  console.log("Queryable classification ids", permissionManager.queryableClassificationIds);
 
   return next();
 };

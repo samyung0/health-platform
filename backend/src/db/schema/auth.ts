@@ -1,4 +1,4 @@
-import { schoolTypeEnum } from "@/db/schema/enum";
+import { entityTypeEnum, schoolTypeEnum } from "@/db/schema/enum";
 import { sql } from "drizzle-orm";
 import { AnyPgColumn, boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
@@ -35,7 +35,7 @@ export const entity = pgTable("entity", {
     .notNull(),
   username: text("username").unique(),
   displayUsername: text("display_username"), // unused, use name instead
-  entityType: text("entity_type").notNull(),
+  entityType: entityTypeEnum("entity_type").notNull(),
   isChildOf: text("is_child_of").references((): AnyPgColumn => entity.id),
   internalId: text("internal_id").notNull(), // does not need to be unique, since student promoting will have same student id
   birthDate: timestamp("birth_date"),

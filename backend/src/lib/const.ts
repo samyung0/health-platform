@@ -1,10 +1,10 @@
 // export const PAGE_SIZE = 50;
-import Path from "path";
 
 export const DEFAULT_OUTDATED_MONTH = 7; // August
 export const DEFAULT_OUTDATED_DAY = 31;
 
-export const DEFAULT_UPLOAD_FILE_PATH = Path.join(__dirname, "..", "..", "files", "uploaded");
+// export const DEFAULT_UPLOAD_FILE_PATH = Path.join(__dirname, "..", "..", "files", "uploaded");
+// export const DEFAULT_OUTPUT_FILE_PATH = Path.join(__dirname, "..", "..", "files", "generated");
 
 export const EXPECTED_HEADERS_FROM_DAWEI_EXPORT = [
   "年级编号",

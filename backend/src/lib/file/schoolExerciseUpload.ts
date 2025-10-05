@@ -6,19 +6,16 @@ import {
   fileProcess,
   fileProcessMessage,
   fileStorage,
-  fitnessTest,
   record,
 } from "@/db/schema";
 import { FileProcessMessageSeverity, FileProcessStatus } from "@/db/schema/enum";
 import { EXPECTED_HEADERS_FROM_DAWEI_EXPORT } from "@/lib/const";
 import { readSchoolTestExcel } from "@/lib/excelOperations";
-import { uploadSchoolTestValidator } from "@/lib/validators";
+import { uploadSchoolExerciseValidator } from "@/lib/validators";
 import { and, eq, gt, InferInsertModel } from "drizzle-orm";
-import Path from "path";
 import z from "zod";
 
 import measureType_ from "@/data/persistent/measure_type.json";
-import { mergeSchoolTestFromUpload } from "@/lib/file/mergeSchoolTest";
 import { Session } from "@/lib/types";
 import {
   chunk,
@@ -41,7 +38,7 @@ const measureType = measureType_ as {
   compareDirection: string;
 }[];
 
-interface SchoolTestExcelValidatorResult {
+interface SchoolExerciseExcelValidatorResult {
   fileProcessId?: string;
   status: FileProcessStatus;
   // TODO: unify messages reutrn like this cross app
@@ -52,14 +49,14 @@ interface SchoolTestExcelValidatorResult {
 // give immediately response and create record in db (if failed basic check, create error record)
 // then process in background & update db after/during process
 // frontend will keep polling endpoint for process updates
-export const schoolTestUpload = async (
-  config: z.infer<typeof uploadSchoolTestValidator>,
+export const schoolExerciseUpload = async (
+  config: z.infer<typeof uploadSchoolExerciseValidator>,
   file: File,
   copyFilePath: string,
   session: Session
-): Promise<SchoolTestExcelValidatorResult> => {
+): Promise<SchoolExerciseExcelValidatorResult> => {
   const { schoolId, entityId, schoolType, classificationId } = session.activeClassifications[0];
-  console.log("Received file request for test upload: ", Object.entries(config));
+  console.log("Received file request for exercise upload: ", Object.entries(config));
 
   let data: string[][] = [];
   try {
@@ -75,7 +72,7 @@ export const schoolTestUpload = async (
       const [fileProcess_] = await tx
         .insert(fileProcess)
         .values({
-          fileRequestNature: "schoolTest",
+          fileRequestNature: "schoolExercise",
           isUploadRequested: true,
           status: "failed",
           fileId: fileStorage_.id,
@@ -115,7 +112,7 @@ export const schoolTestUpload = async (
       const [fileProcess_] = await tx
         .insert(fileProcess)
         .values({
-          fileRequestNature: "schoolTest",
+          fileRequestNature: "schoolExercise",
           isUploadRequested: true,
           status: "failed",
           fileId: fileStorage_.id,
@@ -149,7 +146,7 @@ export const schoolTestUpload = async (
     const [fileProcess_] = await tx
       .insert(fileProcess)
       .values({
-        fileRequestNature: "schoolTest",
+        fileRequestNature: "schoolExercise",
         isUploadRequested: true,
         status: "pending",
         processStartDate: new Date(),
@@ -163,7 +160,7 @@ export const schoolTestUpload = async (
 
   // TODO: implement proper queues
   setTimeout(async () => {
-    console.log("Processing file request for test upload: ", fileProcess_.id);
+    console.log("Processing file request for exercise upload: ", fileProcess_.id);
     const tStart = performance.now();
 
     // process each record
@@ -182,67 +179,10 @@ export const schoolTestUpload = async (
         }
         return measureType_;
       });
-      const configYearsAndClasses_ = JSON.parse(config.yearsAndClassesToProcess) as Record<
-        string,
-        string[]
-      >;
-      const configYearsAndClasses = Object.fromEntries(
-        Object.entries(configYearsAndClasses_).map(([key, value]) => [mapYearToChinese(key), value])
-      );
-
-      let fitnessTestId: string | null = null;
-
-      if (config.isCreateNewTest) {
-        const [fitnessTest_] = await db
-          .insert(fitnessTest)
-          .values({
-            schoolId: schoolId,
-            name: config.testName!,
-            fitnessTestDate: config.testDate,
-          })
-          .returning();
-        fitnessTestId = fitnessTest_.id;
-      } else {
-        const [fitnessTest_] = await db
-          .select()
-          .from(fitnessTest)
-          .where(and(eq(fitnessTest.schoolId, schoolId), eq(fitnessTest.name, config.testName!)))
-          .limit(1);
-        if (!fitnessTest_) {
-          db.update(fileProcess)
-            .set({
-              status: "failed",
-            })
-            .where(eq(fileProcess.id, fileProcess_.id))
-            .then();
-          db.insert(fileProcessMessage)
-            .values({
-              fileProcessId: fileProcess_.id,
-              message: `INTERNAL SERVER ERROR: FITNESS TEST NOT FOUND: ${config.testName!}`,
-              severity: "error",
-            })
-            .then();
-          // TODO LOG ERROR
-          console.error(`INTERNAL SERVER ERROR: FITNESS TEST NOT FOUND: ${config.testName!}`);
-          return;
-        }
-        fitnessTestId = fitnessTest_.id;
-      }
 
       const recordsToPush: InferInsertModel<typeof record>[] = [];
       const validStudentRecords: string[][] = [];
       let skippedDueToInvalidOrMismatchClassification = 0;
-      const classScoresGrades: Record<
-        string,
-        Record<
-          string,
-          {
-            totalAvgNormScore: number;
-            totalProcessed: number;
-            totalPassing: number;
-          }
-        >
-      > = {}; // [avgNormScore, grade]
 
       const f = async (recordsToProcess: "all" | number[]) => {
         const dataToProcess =
@@ -270,13 +210,6 @@ export const schoolTestUpload = async (
             // TODO LOG WARNING
             console.warn(`跳过记录: ${dataToProcess[i].join(", ")}，无法识别学生`);
             skippedDueToInvalidOrMismatchClassification++;
-            continue;
-          }
-
-          if (
-            !configYearsAndClasses.hasOwnProperty(year) ||
-            !configYearsAndClasses[year].includes(class_)
-          ) {
             continue;
           }
 
@@ -334,20 +267,12 @@ export const schoolTestUpload = async (
             continue;
           }
 
-          if (!classScoresGrades[year]) classScoresGrades[year] = {};
-          if (!classScoresGrades[year][class_])
-            classScoresGrades[year][class_] = {
-              totalAvgNormScore: 0,
-              totalProcessed: 0,
-              totalPassing: 0,
-            };
-
           if (recordsToProcess === "all") validStudentRecords.push(dataToProcess[i]);
 
           try {
-            let weightedSum = 0;
-            let additionalScoreSum = 0;
             for (let j = 0; j < slicedHeaders.length; j++) {
+              const score = dataToProcess[i][j + 9];
+              if (!score) continue;
               const isApplicableToGender =
                 mappedHeaders[j].applicableToGender === "全部" ||
                 mappedHeaders[j].applicableToGender === gender;
@@ -360,10 +285,9 @@ export const schoolTestUpload = async (
               const row: InferInsertModel<typeof record> = {
                 recordType: slicedHeaders[j],
                 inSchool: true,
-                nature: "test",
-                fitnessTestId: fitnessTestId,
+                nature: "exercise",
                 score: parseBaseScore(dataToProcess[i][j + 9]),
-                isRedoOrMissingUpload: config.isRedoOrMissingUpload,
+                exerciseDate: config.exerciseDate,
                 toEntityClassification: validClassification_[0].id,
                 fromEntityClassification: classificationId,
               };
@@ -382,52 +306,6 @@ export const schoolTestUpload = async (
                 year,
                 mappedHeaders[j]!.compareDirection
               );
-              switch (slicedHeaders[j]) {
-                case "体重指数（BMI）":
-                  weightedSum += normalizedScore * 0.15;
-                  break;
-                case "肺活量":
-                  weightedSum += normalizedScore * 0.15;
-                  break;
-                case "50米跑":
-                  weightedSum += normalizedScore * 0.2;
-                  break;
-
-                case "坐位体前屈":
-                  weightedSum +=
-                    normalizedScore *
-                    (schoolType === "小学" && (year === "一年级" || year === "二年级")
-                      ? 0.3
-                      : schoolType === "小学" && (year === "三年级" || year === "四年级")
-                      ? 0.2
-                      : 0.1);
-                case "一分钟跳绳":
-                  weightedSum +=
-                    normalizedScore *
-                    (schoolType === "小学" &&
-                    (year === "一年级" ||
-                      year === "二年级" ||
-                      year === "三年级" ||
-                      year === "四年级")
-                      ? 0.2
-                      : 0.1);
-                  break;
-                case "一分钟仰卧起坐":
-                  weightedSum +=
-                    normalizedScore *
-                    (schoolType === "小学" && (year === "三年级" || year === "四年级")
-                      ? 0.1
-                      : schoolType === "小学" && (year === "五年级" || year === "六年级")
-                      ? 0.2
-                      : 0);
-                  break;
-                case "50米×8往返跑":
-                  weightedSum +=
-                    normalizedScore *
-                    (schoolType === "小学" && (year === "五年级" || year === "六年级") ? 0.1 : 0);
-                  break;
-              }
-              additionalScoreSum += additionalScore;
               recordsToPush.push({
                 ...row,
                 normalizedScore: normalizedScore,
@@ -447,39 +325,17 @@ export const schoolTestUpload = async (
                 schoolType,
                 year
               );
-              weightedSum += normalizedScore * 0.15;
               recordsToPush.push({
                 recordType: "体重指数（BMI）",
                 inSchool: true,
-                nature: "test",
-                fitnessTestId: fitnessTestId,
+                nature: "exercise",
                 score: bmi,
-                isRedoOrMissingUpload: config.isRedoOrMissingUpload,
+                exerciseDate: config.exerciseDate,
                 toEntityClassification: validClassification_[0].id,
                 fromEntityClassification: classificationId,
                 normalizedScore: normalizedScore,
                 grade: grade,
               });
-            } else {
-              recordsToPush.push({
-                recordType: "体重指数（BMI）",
-                inSchool: true,
-                nature: "test",
-                fitnessTestId: fitnessTestId,
-                score: null,
-                isRedoOrMissingUpload: config.isRedoOrMissingUpload,
-                toEntityClassification: validClassification_[0].id,
-                fromEntityClassification: classificationId,
-                normalizedScore: null,
-                grade: null,
-              });
-            }
-
-            if (recordsToProcess === "all") {
-              classScoresGrades[year][class_].totalAvgNormScore += weightedSum + additionalScoreSum;
-              classScoresGrades[year][class_].totalProcessed++;
-              if (weightedSum + additionalScoreSum >= 60)
-                classScoresGrades[year][class_].totalPassing++;
             }
           } catch (error) {
             // tx.rollback();
@@ -544,44 +400,6 @@ export const schoolTestUpload = async (
         }
       }
 
-      // update per class results
-      const [fitnessTest_] = await db
-        .select()
-        .from(fitnessTest)
-        .where(eq(fitnessTest.id, fitnessTestId))
-        .limit(1);
-      const newRecord = config.isRedoOrMissingUpload
-        ? fitnessTest_.redoOrMissingUploadYearsAndClassesScoresGrades
-        : fitnessTest_.mainUploadYearsAndClassesScoresGrades;
-      // merge classScoresGrades to fitnessTest_
-      for (const year in classScoresGrades) {
-        for (const class_ in classScoresGrades[year]) {
-          if (!newRecord[year]) newRecord[year] = {};
-          if (!newRecord[year][class_]) newRecord[year][class_] = [];
-          const avgScore =
-            classScoresGrades[year][class_].totalAvgNormScore /
-            classScoresGrades[year][class_].totalProcessed;
-          const grade = findGrade(avgScore);
-          newRecord[year][class_] = [
-            avgScore.toFixed(1),
-            grade!,
-            (
-              classScoresGrades[year][class_].totalPassing /
-              classScoresGrades[year][class_].totalProcessed
-            ).toFixed(1),
-          ];
-        }
-      }
-      console.log("newRecord: ", newRecord);
-      await db
-        .update(fitnessTest)
-        .set(
-          config.isRedoOrMissingUpload
-            ? { redoOrMissingUploadYearsAndClassesScoresGrades: newRecord }
-            : { mainUploadYearsAndClassesScoresGrades: newRecord }
-        )
-        .where(eq(fitnessTest.id, fitnessTestId));
-
       console.log(
         "file reading completed, records processed: ",
         validStudentRecords.length,
@@ -613,90 +431,6 @@ export const schoolTestUpload = async (
             console.warn("系统警告: 没有记录");
           }
           console.log("records added");
-
-          // update the mainUploadYearsAndClassesProcessed or redoOrMissingUploadYearsAndClassesProcessed
-          if (config.isRedoOrMissingUpload) {
-            const [{ redoOrMissingUploadYearsAndClassesProcessed }] = await tx
-              .select({
-                redoOrMissingUploadYearsAndClassesProcessed:
-                  fitnessTest.redoOrMissingUploadYearsAndClassesProcessed,
-              })
-              .from(fitnessTest)
-              .where(eq(fitnessTest.id, fitnessTestId))
-              .limit(1);
-            for (const [key, value] of Object.entries(configYearsAndClasses)) {
-              if (redoOrMissingUploadYearsAndClassesProcessed.hasOwnProperty(key)) {
-                redoOrMissingUploadYearsAndClassesProcessed[key] = [
-                  ...new Set([...redoOrMissingUploadYearsAndClassesProcessed[key], ...value]),
-                ];
-              } else {
-                redoOrMissingUploadYearsAndClassesProcessed[key] = value;
-              }
-            }
-            await db
-              .update(fitnessTest)
-              .set({
-                redoOrMissingUploadYearsAndClassesProcessed:
-                  redoOrMissingUploadYearsAndClassesProcessed,
-              })
-              .where(eq(fitnessTest.id, fitnessTestId));
-          } else {
-            const [{ mainUploadYearsAndClassesProcessed }] = await tx
-              .select({
-                mainUploadYearsAndClassesProcessed: fitnessTest.mainUploadYearsAndClassesProcessed,
-              })
-              .from(fitnessTest)
-              .where(eq(fitnessTest.id, fitnessTestId))
-              .limit(1);
-            for (const [key, value] of Object.entries(configYearsAndClasses)) {
-              if (mainUploadYearsAndClassesProcessed.hasOwnProperty(key)) {
-                mainUploadYearsAndClassesProcessed[key] = [
-                  ...new Set([...mainUploadYearsAndClassesProcessed[key], ...value]),
-                ];
-              } else {
-                mainUploadYearsAndClassesProcessed[key] = value;
-              }
-            }
-            await db
-              .update(fitnessTest)
-              .set({
-                mainUploadYearsAndClassesProcessed: mainUploadYearsAndClassesProcessed,
-              })
-              .where(eq(fitnessTest.id, fitnessTestId));
-          }
-
-          // file operations
-          if (!config.isRedoOrMissingUpload) {
-            await mergeSchoolTestFromUpload(
-              Path.join(process.env.DEFAULT_OUTPUT_FILE_PATH!, "schoolTest"),
-              `体测-${config.testName}-主测.xlsx`,
-              validStudentRecords,
-              headers
-            );
-            console.log(
-              "File created at: ",
-              Path.join(
-                process.env.DEFAULT_OUTPUT_FILE_PATH!,
-                "schoolTest",
-                `体测-${config.testName}-主测.xlsx`
-              )
-            );
-          } else {
-            await mergeSchoolTestFromUpload(
-              Path.join(process.env.DEFAULT_OUTPUT_FILE_PATH!, "schoolTest"),
-              `体测-${config.testName}-补测.xlsx`,
-              validStudentRecords,
-              headers
-            );
-            console.log(
-              "File created at: ",
-              Path.join(
-                process.env.DEFAULT_OUTPUT_FILE_PATH!,
-                "schoolTest",
-                `体测-${config.testName}-补测.xlsx`
-              )
-            );
-          }
         } catch (error) {
           tx.rollback();
           throw error;
@@ -707,9 +441,7 @@ export const schoolTestUpload = async (
 
       await db.insert(fileProcessMessage).values({
         fileProcessId: fileProcess_.id,
-        message: `文件处理完成：${config.testName}（${
-          config.isRedoOrMissingUpload ? "补测" : "主测"
-        }）\n新增记录: ${
+        message: `文件处理完成：体锻上载 - ${config.exerciseDate.toDateString()}\n新增记录: ${
           recordsToPush.length
         }， 跳过记录: ${skippedDueToInvalidOrMismatchClassification}， 失败记录: ${
           failedRecordsIndicesSecondTime.length

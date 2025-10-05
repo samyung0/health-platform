@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { Session, SessionContent } from "@/lib/types";
+import { Session } from "@/lib/types";
+import { checkValidClassification } from "@/lib/util";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
@@ -10,10 +11,11 @@ import {
   phoneNumber,
   username,
 } from "better-auth/plugins";
-import { and, eq } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
+import { and, eq, sql } from "drizzle-orm";
+import { v7 } from "uuid";
 
 export const auth = betterAuth({
+  trustedOrigins: [process.env.FRONTEND_URL!],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -53,7 +55,7 @@ export const auth = betterAuth({
       },
     }),
     customSession(async ({ user, session }) => {
-      const sessionData = (await db
+      const sessionData = await db
         .select({
           entityId: schema.entity.id,
           classificationId: schema.classification.id,
@@ -76,6 +78,18 @@ export const auth = betterAuth({
           username: schema.entity.username,
           validFrom: schema.classification.validFrom,
           validTo: schema.classification.validTo,
+          canUploadSchoolTest: schema.permission.canUploadSchoolTest,
+          canUploadStudentInfo: schema.permission.canUploadStudentInfo,
+          canAccessSchoolInClassification: schema.permission.canAccessSchoolInClassification,
+          canAccessClassInClassification: schema.permission.canAccessClassInClassification,
+          canAccessYearInClassification: schema.permission.canAccessYearInClassification,
+          canAccessSameEntityInternalIdInClassification:
+            schema.permission.canAccessSameEntityInternalIdInClassification,
+          canAccessChildEntityInternalIdInClassification:
+            schema.permission.canAccessChildEntityInternalIdInClassification,
+          children: sql<Array<{ entityId: string; name: string }>>`json_build_array()`.as(
+            "children"
+          ),
         })
         .from(schema.classification)
         .where(and(eq(schema.classification.entityId, user.id)))
@@ -84,14 +98,28 @@ export const auth = betterAuth({
           eq(schema.classification.id, schema.classificationMap.classificationId)
         )
         .innerJoin(schema.entity, eq(schema.classification.entityId, schema.entity.id))
+        .innerJoin(schema.school, eq(schema.classification.schoolId, schema.school.id))
         .innerJoin(
-          schema.school,
-          eq(schema.classification.schoolId, schema.school.id)
-        )) as SessionContent[];
+          schema.permission,
+          eq(schema.classification.entityId, schema.permission.entityId)
+        );
+      if (sessionData.length === 0) throw new Error("Unauthorized");
+      if (sessionData[0].entityType === "parent") {
+        // find children
+        const children = await db
+          .select({
+            entityId: schema.entity.id,
+            name: schema.entity.name,
+          })
+          .from(schema.entity)
+          .where(eq(schema.entity.isChildOf, sessionData[0].entityId));
+        sessionData[0].children = children;
+      }
       return {
-        activeClassifications: sessionData.filter(
-          (classification) =>
-            !classification.validTo || Date.now() < classification.validTo.getTime()
+        activeClassifications: JSON.parse(
+          JSON.stringify(
+            sessionData.filter((classification) => checkValidClassification(classification))
+          )
         ),
         allClassifications: sessionData,
       } as Session;
@@ -100,7 +128,7 @@ export const auth = betterAuth({
   ],
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
-      if (ctx.path === "/sign-in/username" && ctx.context.newSession) {
+      if (ctx.path.startsWith("/sign-in") && ctx.context.newSession) {
         // should have classification & permission record
         const classifications = await db
           .select()
@@ -152,7 +180,9 @@ export const auth = betterAuth({
   },
   advanced: {
     database: {
-      generateId: () => uuidv4(),
+      generateId: () => v7(),
     },
   },
 });
+
+export type Auth = typeof auth;

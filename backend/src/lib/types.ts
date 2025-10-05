@@ -1,3 +1,5 @@
+import { EntityType } from "@/db/schema/enum";
+
 export type SessionContent = {
   entityId: string;
   classificationId: string;
@@ -14,12 +16,20 @@ export type SessionContent = {
   phoneNumberVerified: boolean;
   internalId: string;
   birthDate: Date | null;
-  entityType: string;
+  entityType: EntityType;
   createdAt: Date;
   updatedAt: Date;
   username: string | null;
-  validFrom: Date | null;
+  validFrom: Date;
   validTo: Date | null;
+  canAccessSchoolInClassification: boolean;
+  canAccessClassInClassification: boolean;
+  canAccessYearInClassification: boolean;
+  canAccessSameEntityInternalIdInClassification: boolean;
+  canAccessChildEntityInternalIdInClassification: boolean;
+  canUploadSchoolTest: boolean;
+  canUploadStudentInfo: boolean;
+  children: { entityId: string; name: string }[];
 };
 
 export type Session = {

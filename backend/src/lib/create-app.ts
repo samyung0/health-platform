@@ -2,7 +2,6 @@ import { AppBindings } from "@/lib/types";
 import cors from "@/middlewares/cors";
 import notFound from "@/middlewares/not-found";
 import onError from "@/middlewares/on-error";
-// import withQueryParams from "@/middlewares/with-query-params";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 

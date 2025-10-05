@@ -2,15 +2,39 @@
   "name": "school-platform",
   "module": "index.ts",
   "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "docker:dev": "docker compose --env-file .env.development -f docker-compose.dev.yml up",
     "docker:prod": "docker compose --env-file .env.production -f docker-compose.prod.yml up -d",
-    "interact": "docker exec -it school-platform-dev-db psql -U test -d postgres"
+    "docker:dev:build": "docker compose --env-file .env.development -f docker-compose.dev.yml up --build",
+    "docker:prod:build": "docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build",
+    "docker:down": "docker compose --env-file .env.development -f docker-compose.dev.yml down",
+    "docker:prod:down": "docker compose --env-file .env.production -f docker-compose.prod.yml down",
+    "interact": "docker exec -it school-platform-dev-db psql -U test -d postgres",
+    "build:all": "cd backend && bun run typecheck && cd ../frontend && bun run build",
+    "check:versions": "node scripts/check-versions.js",
+    "preinstall": "bun run check:versions"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/file-saver": "^2.0.7"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@nanostores/react": "^1.0.0",
+    "bcrypt": "^6.0.0",
+    "better-auth": "1.3.11",
+    "file-saver": "^2.0.5",
+    "hono": "4.9.9",
+    "react-dropzone": "^14.3.8",
+    "react-error-boundary": "^6.0.0",
+    "shadcn-dropzone": "^0.2.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "xlsx-js-style": "^1.2.0"
   }
 }

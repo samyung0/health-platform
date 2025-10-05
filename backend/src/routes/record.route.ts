@@ -1,54 +1,43 @@
 import { db } from "@/db";
-import { classification, classificationMap, entity, record, school } from "@/db/schema";
+import {
+  classification,
+  classificationMap,
+  entity,
+  fitnessTest,
+  record,
+  school,
+} from "@/db/schema";
 import { DEFAULT_OUTDATED_DAY, DEFAULT_OUTDATED_MONTH } from "@/lib/const";
 import { createRouter } from "@/lib/create-app";
-import {
-  createRecordValidator,
-  getRecordsQueryValidator,
-  updateRecordValidator,
-} from "@/lib/validators";
-import withModifyableId from "@/middlewares/with-modifyable-id";
+import { checkValidClassification, checkValidSession, findGrade, findTestScores } from "@/lib/util";
+import { getRecordsQueryValidator, uploadHomeExerciseValidator } from "@/lib/validators";
 import withQueryableId from "@/middlewares/with-queryable-id";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, gt, lte, SQL } from "drizzle-orm";
+import { and, eq, gt, InferInsertModel, lte, SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { v4 } from "uuid";
 
+import measureType_ from "@/data/persistent/measure_type.json";
+
+const measureType = measureType_ as {
+  testName: string;
+  exerciseName: string | null;
+  unit: string;
+  canBeExercised: boolean;
+  exerciseScoreCalculationMethod: string | null;
+  isCalculatedAndReported: boolean;
+  applicableToGender: string;
+  applicableTo: Record<string, string[]>;
+  compareDirection: string;
+}[];
 // for ts rpc to infer types, do NOT break the chain and do NOT use middleware globally
 
 const router = createRouter()
-  .post("/", zValidator("form", createRecordValidator), async (c) => {
-    if (!c.get("session") || !c.get("permissionManager")) {
-      throw new Error("Unauthorized");
-    }
-
-    const body = c.req.valid("form");
-    const row = {
-      ...body,
-      id: `record_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      fromEntityClassification: c.get("session")!.activeClassifications[0].classificationId,
-    };
-
-    // TODO: add in type as student for checking
-
-    if (
-      !c.get("permissionManager").queryableClassificationIds.includes(body.toEntityClassification)
-    ) {
-      throw new Error("Unauthorized");
-    }
-
-    const newRecord = await db.insert(record).values(row).returning();
-
-    return c.json(
-      {
-        message: "Record created successfully",
-        data: newRecord[0],
-      },
-      201
-    );
-  })
   .get("/all", zValidator("query", getRecordsQueryValidator), withQueryableId, async (c) => {
-    if (!c.get("session") || !c.get("permissionManager")) {
+    const [session, entityType] = checkValidSession(c.get("session"));
+
+    // TODO: factor permission manager
+    if (!c.get("permissionManager")) {
       throw new Error("Unauthorized");
     }
 
@@ -62,7 +51,6 @@ const router = createRouter()
     const fromEntity = alias(entity, "fromEntity");
     const toSchool = alias(school, "toSchool");
     const fromSchool = alias(school, "fromSchool");
-    // TODO: add in type as student for filtering
 
     let query = db
       .select({
@@ -78,6 +66,7 @@ const router = createRouter()
           isChildOf: toEntity.isChildOf,
           entityId: toEntity.id,
           internalId: toEntity.internalId,
+          gender: toEntity.gender,
         },
         recordFromEntity: {
           classificationId: fromClassification.id,
@@ -90,6 +79,7 @@ const router = createRouter()
           isChildOf: fromEntity.isChildOf,
           entityId: fromEntity.id,
           internalId: fromEntity.internalId,
+          gender: fromEntity.gender,
         },
         recordType: record.recordType,
         normalizedScore: record.normalizedScore,
@@ -101,7 +91,6 @@ const router = createRouter()
         videoUrl: record.videoUrl,
         grade: record.grade,
         isRedoOrMissingUpload: record.isRedoOrMissingUpload,
-        isRedoOrMissingUploadTargetFitnesstTestId: record.isRedoOrMissingUploadTargetFitnesstTestId,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
       })
@@ -120,6 +109,7 @@ const router = createRouter()
       .$dynamic();
 
     const whereClause: SQL[] = [];
+    whereClause.push(eq(record.isRedoOrMissingUpload, false));
 
     if (queryParams.classificationValidFromYear) {
       whereClause.push(
@@ -161,10 +151,8 @@ const router = createRouter()
       data: results,
     });
   })
-  .get("/schoolTest", zValidator("query", getRecordsQueryValidator), withQueryableId, async (c) => {
-    if (!c.get("session") || !c.get("permissionManager")) {
-      throw new Error("Unauthorized");
-    }
+  .get("/schoolTest", zValidator("query", getRecordsQueryValidator), async (c) => {
+    const [session, entityType] = checkValidSession(c.get("session"));
 
     const queryParams = c.req.valid("query");
 
@@ -192,6 +180,7 @@ const router = createRouter()
           isChildOf: toEntity.isChildOf,
           entityId: toEntity.id,
           internalId: toEntity.internalId,
+          gender: toEntity.gender,
         },
         recordFromEntity: {
           classificationId: fromClassification.id,
@@ -204,18 +193,20 @@ const router = createRouter()
           isChildOf: fromEntity.isChildOf,
           entityId: fromEntity.id,
           internalId: fromEntity.internalId,
+          gender: fromEntity.gender,
         },
         recordType: record.recordType,
         normalizedScore: record.normalizedScore,
         additionalScore: record.additionalScore,
         exerciseDuration: record.exerciseDuration,
+        fitnessTestId: record.fitnessTestId,
+        fitnessTestName: fitnessTest.name,
         inSchool: record.inSchool,
         nature: record.nature,
         score: record.score,
         videoUrl: record.videoUrl,
         grade: record.grade,
         isRedoOrMissingUpload: record.isRedoOrMissingUpload,
-        isRedoOrMissingUploadTargetFitnesstTestId: record.isRedoOrMissingUploadTargetFitnesstTestId,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
       })
@@ -231,12 +222,14 @@ const router = createRouter()
       )
       .innerJoin(toSchool, eq(toClassification.schoolId, toSchool.id))
       .innerJoin(fromSchool, eq(fromClassification.schoolId, fromSchool.id))
+      .innerJoin(fitnessTest, eq(record.fitnessTestId, fitnessTest.id))
       .$dynamic();
 
     const whereClause: SQL[] = [];
 
     whereClause.push(eq(record.inSchool, true));
-    whereClause.push(eq(record.recordType, "test"));
+    whereClause.push(eq(record.nature, "test"));
+    whereClause.push(eq(record.isRedoOrMissingUpload, false));
 
     if (queryParams.classificationValidFromYear) {
       whereClause.push(
@@ -268,11 +261,11 @@ const router = createRouter()
 
     let results = await query.prepare(v4()).execute();
 
-    results = results.filter((result) => {
-      return c
-        .get("permissionManager")
-        .queryableClassificationIds.includes(result.recordToEntity.classificationId);
-    });
+    // results = results.filter((result) => {
+    //   return c
+    //     .get("permissionManager")
+    //     .queryableClassificationIds.includes(result.recordToEntity.classificationId);
+    // });
 
     return c.json({
       data: results,
@@ -283,7 +276,8 @@ const router = createRouter()
     zValidator("query", getRecordsQueryValidator),
     withQueryableId,
     async (c) => {
-      if (!c.get("session") || !c.get("permissionManager")) {
+      const [session, entityType] = checkValidSession(c.get("session"));
+      if (!c.get("permissionManager")) {
         throw new Error("Unauthorized");
       }
 
@@ -314,6 +308,7 @@ const router = createRouter()
             isChildOf: toEntity.isChildOf,
             entityId: toEntity.id,
             internalId: toEntity.internalId,
+            gender: toEntity.gender,
           },
           recordFromEntity: {
             classificationId: fromClassification.id,
@@ -326,6 +321,7 @@ const router = createRouter()
             isChildOf: fromEntity.isChildOf,
             entityId: fromEntity.id,
             internalId: fromEntity.internalId,
+            gender: fromEntity.gender,
           },
           recordType: record.recordType,
           normalizedScore: record.normalizedScore,
@@ -334,11 +330,11 @@ const router = createRouter()
           inSchool: record.inSchool,
           nature: record.nature,
           score: record.score,
+          exerciseScore: record.exerciseScore,
+          exerciseDate: record.exerciseDate,
           videoUrl: record.videoUrl,
           grade: record.grade,
           isRedoOrMissingUpload: record.isRedoOrMissingUpload,
-          isRedoOrMissingUploadTargetFitnesstTestId:
-            record.isRedoOrMissingUploadTargetFitnesstTestId,
           createdAt: record.createdAt,
           updatedAt: record.updatedAt,
         })
@@ -362,7 +358,7 @@ const router = createRouter()
       const whereClause: SQL[] = [];
 
       whereClause.push(eq(record.inSchool, true));
-      whereClause.push(eq(record.recordType, "exercise"));
+      whereClause.push(eq(record.nature, "exercise"));
 
       if (queryParams.classificationValidFromYear) {
         whereClause.push(
@@ -410,7 +406,8 @@ const router = createRouter()
     zValidator("query", getRecordsQueryValidator),
     withQueryableId,
     async (c) => {
-      if (!c.get("session") || !c.get("permissionManager")) {
+      const [session, entityType] = checkValidSession(c.get("session"));
+      if (!c.get("permissionManager")) {
         throw new Error("Unauthorized");
       }
 
@@ -440,6 +437,7 @@ const router = createRouter()
             isChildOf: toEntity.isChildOf,
             entityId: toEntity.id,
             internalId: toEntity.internalId,
+            gender: toEntity.gender,
           },
           recordFromEntity: {
             classificationId: fromClassification.id,
@@ -452,6 +450,7 @@ const router = createRouter()
             isChildOf: fromEntity.isChildOf,
             entityId: fromEntity.id,
             internalId: fromEntity.internalId,
+            gender: fromEntity.gender,
           },
           recordType: record.recordType,
           normalizedScore: record.normalizedScore,
@@ -460,11 +459,11 @@ const router = createRouter()
           inSchool: record.inSchool,
           nature: record.nature,
           score: record.score,
+          exerciseScore: record.exerciseScore,
+          exerciseDate: record.exerciseDate,
           videoUrl: record.videoUrl,
           grade: record.grade,
           isRedoOrMissingUpload: record.isRedoOrMissingUpload,
-          isRedoOrMissingUploadTargetFitnesstTestId:
-            record.isRedoOrMissingUploadTargetFitnesstTestId,
           createdAt: record.createdAt,
           updatedAt: record.updatedAt,
         })
@@ -488,7 +487,7 @@ const router = createRouter()
       const whereClause: SQL[] = [];
 
       whereClause.push(eq(record.inSchool, false));
-      whereClause.push(eq(record.recordType, "exercise"));
+      whereClause.push(eq(record.nature, "exercise"));
 
       if (queryParams.classificationValidFromYear) {
         whereClause.push(
@@ -519,7 +518,6 @@ const router = createRouter()
       query = query.where(and(...whereClause));
 
       let results = await query.prepare(v4()).execute();
-
       results = results.filter((result) => {
         return c
           .get("permissionManager")
@@ -531,68 +529,135 @@ const router = createRouter()
       });
     }
   )
-  .put("/:id", zValidator("form", updateRecordValidator), withModifyableId, async (c) => {
-    if (!c.get("session") || !c.get("permissionManager")) {
+  .post("/homeExercise", zValidator("json", uploadHomeExerciseValidator), async (c) => {
+    const json = c.req.valid("json");
+    const [session, entityType] = checkValidSession(c.get("session"));
+
+    if (session.activeClassifications.length === 0) {
       throw new Error("Unauthorized");
     }
 
-    const id = c.req.param("id");
-    const body = c.req.valid("form");
-
-    if (!id) {
-      return c.json({ error: "Record ID is required" }, 400);
+    let error: string | null = null;
+    try {
+      const measure = measureType.find((measure) => measure.exerciseName === json.recordType);
+      if (!measure) {
+        throw new Error("Measure type not found");
+      }
+      const toEntityClassification = await db
+        .select()
+        .from(classification)
+        .where(eq(classification.entityId, json.toEntityId));
+      if (toEntityClassification.length === 0) {
+        throw new Error("To entity classification not found");
+      }
+      const activeClassification = toEntityClassification.filter((classification) =>
+        checkValidClassification(classification)
+      );
+      // "体重指数（BMI）" | "50米跑" | "坐位体前屈" | "50米×8往返跑" | "立定跳远" | "引体向上" | "1000米跑" | "800米跑" | "跳绳" | "仰卧起坐"
+      let calculatedScore: number | undefined = json.score;
+      switch (json.recordType) {
+        case "50米跑":
+          if (!json.score || !json.exerciseDuration) {
+            throw new Error("需要同时填写运动成绩和运动耗时");
+          }
+          calculatedScore = ((json.exerciseDuration * 60) / json.score) * 50;
+          break;
+        case "50米×8往返跑":
+          if (!json.score || !json.exerciseDuration) {
+            throw new Error("需要同时填写运动成绩和运动耗时");
+          }
+          calculatedScore = ((json.exerciseDuration * 60) / json.score) * 50 * 8;
+          break;
+        case "仰卧起坐":
+          if (!json.score || !json.exerciseDuration) {
+            throw new Error("需要同时填写运动成绩和运动耗时");
+          }
+          calculatedScore = json.score / json.exerciseDuration;
+          break;
+        case "引体向上":
+          if (!json.score || !json.exerciseDuration) {
+            throw new Error("需要同时填写运动成绩和运动耗时");
+          }
+          calculatedScore = json.score / json.exerciseDuration;
+          break;
+        case "1000米跑":
+          if (!json.score || !json.exerciseDuration) {
+            throw new Error("需要同时填写运动成绩和运动耗时");
+          }
+          calculatedScore = ((json.exerciseDuration * 60) / json.score) * 1000;
+          break;
+        case "800米跑":
+          if (!json.score || !json.exerciseDuration) {
+            throw new Error("需要同时填写运动成绩和运动耗时");
+          }
+          calculatedScore = ((json.exerciseDuration * 60) / json.score) * 800;
+          break;
+        case "跳绳":
+          if (!json.score || !json.exerciseDuration) {
+            throw new Error("需要同时填写运动成绩和运动耗时");
+          }
+          calculatedScore = json.score / json.exerciseDuration;
+          break;
+        default:
+          break;
+      }
+      if (!calculatedScore) {
+        throw new Error("需要同时填写运动成绩和运动耗时");
+      }
+      const { normalizedScore, additionalScore } = findTestScores(
+        calculatedScore,
+        measure.testName,
+        session.allClassifications[0].gender,
+        session.allClassifications[0].schoolType,
+        session.allClassifications[0].year || "六年级",
+        measure.compareDirection
+      );
+      const record_: InferInsertModel<typeof record> = {
+        ...json,
+        nature: "exercise",
+        inSchool: false,
+        score: calculatedScore,
+        normalizedScore: normalizedScore,
+        additionalScore: additionalScore,
+        grade: findGrade(normalizedScore),
+        // TODO: check permission
+        toEntityClassification:
+          activeClassification.length > 0
+            ? activeClassification[0].id
+            : toEntityClassification[0].id,
+        fromEntityClassification: session.activeClassifications[0].classificationId,
+      };
+      await db.insert(record).values(record_);
+    } catch (error) {
+      error = error instanceof Error ? error.message : (error as string);
+      console.error(error);
     }
 
-    const existingRecord = await db.select().from(record).where(eq(record.id, id)).limit(1);
-
-    if (existingRecord.length === 0) {
-      return c.json({ error: "Record not found" }, 404);
+    if (error) {
+      return c.json(
+        {
+          message: error,
+        },
+        500
+      );
     }
-
-    if (
-      !c
-        .get("permissionManager")
-        .queryableClassificationIds.includes(existingRecord[0].toEntityClassification)
-    ) {
-      throw new Error("Unauthorized");
-    }
-
-    const updatedRecord = await db.update(record).set(body).where(eq(record.id, id)).returning();
 
     return c.json({
-      message: "Record updated successfully",
-      data: updatedRecord[0],
+      message: "Exercise record uploaded successfully",
     });
   })
-  .delete("/:id", withModifyableId, async (c) => {
-    if (!c.get("session") || !c.get("permissionManager")) {
-      throw new Error("Unauthorized");
-    }
-
-    const id = c.req.param("id");
-
-    if (!id) {
-      return c.json({ error: "Record ID is required" }, 400);
-    }
-
-    const existingRecord = await db.select().from(record).where(eq(record.id, id)).limit(1);
-
+  .delete("/homeExercise/:id", async (c) => {
+    const [session, entityType] = checkValidSession(c.get("session"));
+    const existingRecord = await db
+      .select()
+      .from(record)
+      .where(eq(record.id, c.req.param("id")));
     if (existingRecord.length === 0) {
-      return c.json({ error: "Record not found" }, 404);
+      throw new Error("Record not found");
     }
-
-    if (
-      !c
-        .get("permissionManager")
-        .queryableClassificationIds.includes(existingRecord[0].toEntityClassification)
-    ) {
-      throw new Error("Unauthorized");
-    }
-
-    await db.delete(record).where(eq(record.id, id));
-
+    await db.delete(record).where(eq(record.id, c.req.param("id")));
     return c.json({
-      message: "Record deleted successfully",
+      message: "Exercise record deleted successfully",
     });
   });
 

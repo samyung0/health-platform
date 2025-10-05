@@ -1,7 +1,7 @@
+import { parseEnv } from "@/env";
 import { config } from "dotenv";
 import { existsSync } from "fs";
 import { join } from "path";
-import { parseEnv } from "@/env";
 
 /**
  * Load environment variables based on NODE_ENV
