@@ -16,6 +16,7 @@ import {
   atomFitnessTestChosen,
   useSchoolTestFitnessTestAvailable,
   useSchoolTestYearAvailable,
+  useAllSchoolTestRecordsByYearStore,
 } from "~/states/schoolTestRecords";
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
@@ -59,7 +60,7 @@ function Dashboard() {
   const { yearAvailable } = useSchoolTestYearAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const yearChosen = useStore(atomYearChosen);
-
+  const data = useAllSchoolTestRecordsByYearStore().data;
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
     [fitnessTestAvailable.length]
@@ -156,16 +157,23 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            <div className="grid grid-cols-12 gap-6">
-              <SingleYearTotalParticipationCard />
-              <SingleYearTotalGradeCard />
-              <SingleYearTotalScoreCard />
-              {FRONTEND_EXERCISE_TYPES.map((type) => {
-                if (type === "50米×8往返跑" && yearChosen !== "五年级" && yearChosen !== "六年级")
-                  return null;
-                return <SingleYearDetailGradeDonutCard key={type} type={type} />;
-              })}
-            </div>
+            {!data && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                加载中 ...
+              </div>
+            )}
+            {data && (
+              <div className="grid grid-cols-12 gap-6">
+                <SingleYearTotalParticipationCard />
+                <SingleYearTotalGradeCard />
+                <SingleYearTotalScoreCard />
+                {FRONTEND_EXERCISE_TYPES.map((type) => {
+                  if (type === "50米×8往返跑" && yearChosen !== "五年级" && yearChosen !== "六年级")
+                    return null;
+                  return <SingleYearDetailGradeDonutCard key={type} type={type} />;
+                })}
+              </div>
+            )}
           </div>
         </main>
       </div>

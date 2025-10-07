@@ -15,7 +15,7 @@ import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
 import {
   atomFitnessTestChosen,
   useSchoolTestFitnessTestAvailable,
-  useSchoolTestYearAvailable,
+  useAllSchoolTestRecordsBySchoolStore,
 } from "~/states/schoolTestRecords";
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
@@ -40,8 +40,8 @@ function Dashboard() {
   const { data: session } = authClient.useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { fitnessTestAvailable } = useSchoolTestFitnessTestAvailable();
-  const { yearAvailable } = useSchoolTestYearAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const data = useAllSchoolTestRecordsBySchoolStore().data;
 
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
@@ -127,16 +127,23 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            <div className="grid grid-cols-12 gap-6">
-              <SingleSchoolTotalParticipationCard />
-              <SingleSchoolTotalGradeCard />
-              <SingleSchoolTotalScoreCard />
-              <SingleSchoolTotalYearParticipationCard />
-              <SingleSchoolTotalYearPassingRateCard />
-              {FRONTEND_EXERCISE_TYPES.map((type) => {
-                return <SingleClassDetailGradeBarCard key={type} type={type} />;
-              })}
-            </div>
+            {!data && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                加载中 ...
+              </div>
+            )}
+            {data && (
+              <div className="grid grid-cols-12 gap-6">
+                <SingleSchoolTotalParticipationCard />
+                <SingleSchoolTotalGradeCard />
+                <SingleSchoolTotalScoreCard />
+                <SingleSchoolTotalYearParticipationCard />
+                <SingleSchoolTotalYearPassingRateCard />
+                {FRONTEND_EXERCISE_TYPES.map((type) => {
+                  return <SingleClassDetailGradeBarCard key={type} type={type} />;
+                })}
+              </div>
+            )}
           </div>
         </main>
       </div>

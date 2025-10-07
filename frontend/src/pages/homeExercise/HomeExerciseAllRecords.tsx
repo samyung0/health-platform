@@ -4,11 +4,12 @@ import Sidebar from "../../partials/Sidebar";
 import Header from "../../partials/Header";
 import HomeExerciseTable from "~/partials/homeExerciseRecord/HomeExerciseTable";
 import HomeExerciseDialog from "~/partials/homeExerciseRecord/HomeExerciseDialog";
+import { useHomeExerciseRecords } from "~/states/homeExerciseRecords";
 
 function HomeExerciseAllRecords() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openUploadHomeExercise, setOpenUploadHomeExercise] = useState(false);
-
+  const data = useHomeExerciseRecords().data;
   return (
     <div className="flex h-[100dvh] overflow-hidden">
       {/* Sidebar */}
@@ -50,7 +51,12 @@ function HomeExerciseAllRecords() {
             </div>
 
             {/* Table */}
-            <HomeExerciseTable />
+            {!data && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                加载中 ...
+              </div>
+            )}
+            {data && <HomeExerciseTable />}
             <HomeExerciseDialog open={openUploadHomeExercise} setOpen={setOpenUploadHomeExercise} />
           </div>
         </main>

@@ -10,6 +10,7 @@ import SingleScoreSingleDateBMICard from "~/partials/schoolTestSelf/SingleScoreS
 import {
   atomFitnessTestChosen,
   useSchoolTestFitnessTestAvailable,
+  useAllSchoolTestRecordsByMeStore,
 } from "~/states/schoolTestRecords";
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
@@ -20,7 +21,7 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { fitnessTestAvailable } = useSchoolTestFitnessTestAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
-
+  const data = useAllSchoolTestRecordsByMeStore().data;
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
     [fitnessTestAvailable.length]
@@ -106,15 +107,24 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            <div className="grid grid-cols-12 gap-6">
-              <SingleStudentOnlyOverallBarCard />
-              <SingleStudentOnlyOverallRadarCard />
-              <SingleScoreSingleDateBMICard />
-              {FRONTEND_EXERCISE_TYPES.map(
-                (type) =>
-                  type !== "体重指数（BMI）" && <SingleScoreSingleDateCard key={type} type={type} />
-              )}
-            </div>
+            {!data && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                加载中 ...
+              </div>
+            )}
+            {data && (
+              <div className="grid grid-cols-12 gap-6">
+                <SingleStudentOnlyOverallBarCard />
+                <SingleStudentOnlyOverallRadarCard />
+                <SingleScoreSingleDateBMICard />
+                {FRONTEND_EXERCISE_TYPES.map(
+                  (type) =>
+                    type !== "体重指数（BMI）" && (
+                      <SingleScoreSingleDateCard key={type} type={type} />
+                    )
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>

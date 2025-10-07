@@ -15,6 +15,7 @@ import {
   atomClassChosen,
   useSchoolTestFitnessTestAvailable,
   useSchoolTestClassAvailable,
+  useAllSchoolTestRecordsByClassStore,
 } from "~/states/schoolTestRecords";
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
@@ -59,6 +60,7 @@ function Dashboard() {
   const { classAvailable } = useSchoolTestClassAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const classChosen = useStore(atomClassChosen);
+  const data = useAllSchoolTestRecordsByClassStore().data;
 
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
@@ -159,17 +161,25 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            <div className="grid grid-cols-12 gap-6">
-              <SingleClassTotalParticipationCard />
-              <SingleClassTotalGradeCard />
-              <SingleClassTotalScoreCard />
-              {FRONTEND_EXERCISE_TYPES.map((type) => {
-                if (!classChosen) return null;
-                const year = classChosen.slice(0, 3);
-                if (type === "50米×8往返跑" && year !== "五年级" && year !== "六年级") return null;
-                return <SingleClassDetailGradeBarCard key={type} type={type} />;
-              })}
-            </div>
+            {!data && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                加载中 ...
+              </div>
+            )}
+            {data && (
+              <div className="grid grid-cols-12 gap-6">
+                <SingleClassTotalParticipationCard />
+                <SingleClassTotalGradeCard />
+                <SingleClassTotalScoreCard />
+                {FRONTEND_EXERCISE_TYPES.map((type) => {
+                  if (!classChosen) return null;
+                  const year = classChosen.slice(0, 3);
+                  if (type === "50米×8往返跑" && year !== "五年级" && year !== "六年级")
+                    return null;
+                  return <SingleClassDetailGradeBarCard key={type} type={type} />;
+                })}
+              </div>
+            )}
           </div>
         </main>
       </div>

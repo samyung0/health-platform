@@ -11,13 +11,18 @@ import SingleStudentOnlyOverallLineCard from "~/partials/homeExerciseSelf/Single
 import SingleStudentOnlyBMILineCard from "~/partials/homeExerciseSelf/SingleStudentOnlyBMILineCard";
 import SingleStudentOnlyAnyCard from "~/partials/homeExerciseSelf/SingleStudentOnlyAnyCard";
 import { useStore } from "@nanostores/react";
-import { atomHomeExerciseDateRangeChosen } from "~/states/homeExerciseRecords";
+import {
+  atomHomeExerciseDateRangeChosen,
+  useAllHomeExerciseRecordsByMeStore,
+} from "~/states/homeExerciseRecords";
 
 // TODO display something when this person did not participate
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const date = useStore(atomHomeExerciseDateRangeChosen);
+
+  const data = useAllHomeExerciseRecordsByMeStore().data;
 
   useEffect(() => {
     atomHomeExerciseDateRangeChosen.set({
@@ -136,14 +141,21 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            <div className="grid grid-cols-12 gap-6">
-              <SingleTotalCard />
-              <SingleStudentOnlyOverallLineCard />
-              <SingleStudentOnlyBMILineCard />
-              {["50米跑", "坐位体前屈", "跳绳", "仰卧起坐", "50米×8往返跑"].map((item) => (
-                <SingleStudentOnlyAnyCard key={item} type={item} />
-              ))}
-            </div>
+            {!data && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                加载中 ...
+              </div>
+            )}
+            {data && (
+              <div className="grid grid-cols-12 gap-6">
+                <SingleTotalCard />
+                <SingleStudentOnlyOverallLineCard />
+                <SingleStudentOnlyBMILineCard />
+                {["50米跑", "坐位体前屈", "跳绳", "仰卧起坐", "50米×8往返跑"].map((item) => (
+                  <SingleStudentOnlyAnyCard key={item} type={item} />
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
