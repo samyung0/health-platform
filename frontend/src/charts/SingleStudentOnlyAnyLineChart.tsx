@@ -35,23 +35,23 @@ const dataFetched = [
     data: [
       {
         createdAt: "2018-12-07 08:45:17",
-        normalizedScore: 13.6,
+        score: 13.6,
       },
       {
         createdAt: "2018-12-07 09:30:17",
-        normalizedScore: 13.7,
+        score: 13.7,
       },
       {
         createdAt: "2018-12-08 10:15:16",
-        normalizedScore: 15.8,
+        score: 15.8,
       },
       {
         createdAt: "2018-12-09 11:00:17",
-        normalizedScore: 16,
+        score: 16,
       },
       {
         createdAt: "2018-12-10 14:45:16",
-        normalizedScore: 21,
+        score: 21,
       },
     ],
   },
@@ -64,7 +64,17 @@ const timeRange: { from: Date; to: Date } = {
 
 const passing = 15;
 
-function SingleStudentOnlyOverallLineChart({ height }: { height?: number }) {
+function SingleStudentOnlyOverallLineChart({
+  height,
+  dataFetched,
+  timeRange,
+  passing,
+}: {
+  height?: number;
+  dataFetched: { label: string; data: { createdAt: string; score: number }[] }[];
+  timeRange: { from: Date; to: Date };
+  passing: number | null;
+}) {
   const [chart, setChart] = useState<Chart<
     keyof ChartTypeRegistry,
     {
@@ -108,7 +118,7 @@ function SingleStudentOnlyOverallLineChart({ height }: { height?: number }) {
         label: item.label,
         data: item.data.map((item2) => ({
           x: item2.createdAt,
-          y: item2.normalizedScore,
+          y: item2.score,
         })),
         borderColor: adjustColorOpacity(colors[index], 0.85),
         backgroundColor: adjustColorOpacity(colors[index], 0.85),
@@ -186,7 +196,7 @@ function SingleStudentOnlyOverallLineChart({ height }: { height?: number }) {
             annotation1: {
               type: "line",
               scaleID: "y",
-              value: passing,
+              value: passing ?? undefined,
               borderWidth: 2,
               beforeDraw: (ctx: EventContext) => drawPassingLineHorizontal(ctx),
               borderColor: darkMode ? passingLineColor.dark : passingLineColor.light,

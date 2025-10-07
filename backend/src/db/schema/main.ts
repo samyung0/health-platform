@@ -21,7 +21,7 @@ export const record = pgTable("record", {
   exerciseScore: real("exercise_score"),
   normalizedScore: real("normalized_score"),
   additionalScore: real("additional_score"),
-  exerciseDuration: smallint("exercise_duration"), //minutes, max 32766
+  exerciseDuration: real("exercise_duration"), //minutes, max 32766
   exerciseDate: timestamp("exercise_date", {
     mode: "date",
     precision: 0,

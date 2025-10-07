@@ -1,7 +1,32 @@
-const exerciseDays = 7;
-const dateRange = 12;
-const totalDuration = 120;
+import {
+  atomHomeExerciseDateRangeChosen,
+  useAllHomeExerciseRecordsByMeStore,
+} from "~/states/homeExerciseRecords";
+import { useStore } from "@nanostores/react";
+import { useMemo } from "react";
+
+// const exerciseDays = 7;
+// const dateRange = 12;
+// const totalDuration = 120;
 function SingleScoreSingleDateCard() {
+  const data = useAllHomeExerciseRecordsByMeStore().data;
+  const date = useStore(atomHomeExerciseDateRangeChosen);
+  const d = useMemo(() => {
+    if (!date || !date.from || !date.to || !data || data.length === 0) return null;
+    let exerciseDay = new Set();
+    let exerciseDuration = 0;
+    for (const record of data) {
+      if (!record.exerciseDate) continue;
+      if (
+        new Date(record.exerciseDate!) >= date.from &&
+        new Date(record.exerciseDate!) <= date.to
+      ) {
+        exerciseDay.add(new Date(record.exerciseDate!).toDateString());
+        exerciseDuration += record.exerciseDuration ?? 0;
+      }
+    }
+    return { exerciseDay: Array.from(exerciseDay), exerciseDuration };
+  }, [data, date]);
   return (
     <div className="flex flex-col col-span-full md:col-span-4 xl:col-span-3 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center">
@@ -15,7 +40,7 @@ function SingleScoreSingleDateCard() {
             </div>
             <div className="flex items-start">
               <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                {exerciseDays}天（{Math.round((exerciseDays / dateRange) * 100)}%）
+                {d?.exerciseDay.length ?? "--"}天
               </div>
             </div>
           </div>
@@ -25,7 +50,7 @@ function SingleScoreSingleDateCard() {
             </div>
             <div className="flex items-start">
               <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                {totalDuration.toFixed(1)}分钟
+                {d?.exerciseDuration.toFixed(1) ?? "--"}分钟
               </div>
             </div>
           </div>

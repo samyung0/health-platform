@@ -64,7 +64,7 @@ export const GRADING_SCALE = {
 } as const;
 // order from worst to best
 export const GRADING_SCALE_KEYS = ["不及格", "及格", "良好", "优秀"] as const;
-export const GRADING_SCALE_BMI_KEYS = ["低体重", "正常", "超重", "肥胖"] as const;
+export const GRADING_SCALE_BMI_KEYS = ["肥胖", "正常", "超重", "低体重"] as const;
 
 export const GENDER_FILTER = ["总计", "男生", "女生"] as const;
 
@@ -136,31 +136,18 @@ export const defaultColors = {
     950: "#342809",
   },
 
-  pink: {
-    "50": "oklch(0.971 0.014 343.198)",
-    "100": "oklch(0.948 0.028 342.258)",
-    "200": "oklch(0.899 0.061 343.231)",
-    "300": "oklch(0.823 0.12 346.018)",
-    "400": "oklch(0.718 0.202 349.761)",
-    "500": "oklch(0.656 0.241 354.308)",
-    "600": "oklch(0.592 0.249 0.584)",
-    "700": "oklch(0.525 0.223 3.958)",
-    "800": "oklch(0.459 0.187 3.815)",
-    "900": "oklch(0.408 0.153 2.432)",
-    "950": "oklch(0.284 0.109 3.907)",
-  },
-  rose: {
-    "50": "oklch(0.969 0.015 12.422)",
-    "100": "oklch(0.941 0.03 12.58)",
-    "200": "oklch(0.892 0.058 10.001)",
-    "300": "oklch(0.81 0.117 11.638)",
-    "400": "oklch(0.712 0.194 13.428)",
-    "500": "oklch(0.645 0.246 16.439)",
-    "600": "oklch(0.586 0.253 17.585)",
-    "700": "oklch(0.514 0.222 16.935)",
-    "800": "oklch(0.455 0.188 13.697)",
-    "900": "oklch(0.41 0.159 10.272)",
-    "950": "oklch(0.271 0.105 12.094)",
+  orange: {
+    50: "#fff7ed",
+    100: "#ffedd5",
+    200: "#fed7aa",
+    300: "#fdba74",
+    400: "#fb923c",
+    500: "#f97316",
+    600: "#ea580c",
+    700: "#c2410c",
+    800: "#9a3412",
+    900: "#7c2d12",
+    950: "#431407",
   },
 };
 
@@ -190,6 +177,34 @@ export const GRADING_COLORS_HOVER_DARK = {
   及格: defaultColors.yellow[300],
   良好: defaultColors.green[300],
   优秀: defaultColors.violet[300],
+};
+
+export const GRADING_BMI_COLORS = {
+  肥胖: defaultColors.red[500],
+  正常: defaultColors.green[500],
+  超重: defaultColors.yellow[500],
+  低体重: defaultColors.orange[500],
+};
+
+export const GRADING_BMI_COLORS_HOVER = {
+  肥胖: defaultColors.red[600],
+  正常: defaultColors.green[600],
+  超重: defaultColors.yellow[600],
+  低体重: defaultColors.orange[600],
+};
+
+export const GRADING_BMI_COLORS_DARK = {
+  肥胖: defaultColors.red[400],
+  正常: defaultColors.green[400],
+  超重: defaultColors.yellow[400],
+  低体重: defaultColors.orange[400],
+};
+
+export const GRADING_BMI_COLORS_HOVER_DARK = {
+  肥胖: defaultColors.red[300],
+  正常: defaultColors.green[300],
+  超重: defaultColors.yellow[300],
+  低体重: defaultColors.orange[300],
 };
 
 export const CHART_COLORS = [

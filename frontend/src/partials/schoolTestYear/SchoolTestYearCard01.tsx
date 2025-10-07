@@ -1,56 +1,55 @@
 import SingleClassTotalParticipationDonutChart from "~/charts/SingleClassTotalParticipationDonutChart";
 import {
-  useAllSchoolTestRecordsByClassStore,
   useAllSchoolTestRecordsByYearStore,
-  useSchoolTestClassFitnessTestChosen,
-  useSchoolTestClassYearChosen,
+  atomYearChosen,
+  atomFitnessTestChosen,
 } from "~/states/schoolTestRecords";
 import { useAllSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
 import { useMemo } from "react";
 import { useStore } from "@nanostores/react";
-import { atomYearChosen } from "~/states/schoolTestRecords";
 
 function SingleYearTotalParticipationDonutCard() {
   const data = useAllSchoolTestRecordsByYearStore().data;
   const testData = useSchoolTests().data?.data ?? [];
   const allSchools = useAllSchoolData().data?.data ?? {};
-  const { fitnessTestChosen } = useSchoolTestClassFitnessTestChosen();
-  const yearClassChosen = useStore(atomYearChosen);
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const yearChosen = useStore(atomYearChosen);
   const totalPeopleThisTest = useMemo<number | null>(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
-    const year = yearClassChosen;
-    if (!year || !data[fitnessTestChosen[0]]?.[year]) return null;
-    const participatedStudents = new Set<string>();
-    for (const record of data[fitnessTestChosen[0]][year]) {
-      if (record.score !== null) participatedStudents.add(record.recordToEntity.entityId);
+    if (!data || fitnessTestChosen.length === 0 || !yearChosen || !allSchools) return null;
+    const scoresGrades = testData.find(
+      (item) => item.name === fitnessTestChosen[0]
+    )?.mainUploadYearsAndClassesScoresGrades;
+    if (!scoresGrades || scoresGrades[yearChosen] === undefined) return null;
+    let sum = 0;
+    for (const class_ in scoresGrades[yearChosen]) {
+      sum += parseInt(scoresGrades[yearChosen][class_][5]);
     }
-    return participatedStudents.size;
-  }, [data, fitnessTestChosen, yearClassChosen]);
+    return sum;
+  }, [data, fitnessTestChosen, yearChosen]);
 
   const totalPeople = useMemo<Record<string, [number, number]> | null>(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
-    const year = yearClassChosen;
-    if (!year) return null;
+    if (!data || fitnessTestChosen.length === 0 || !yearChosen || !allSchools) return null;
     const r: Record<string, [number, number]> = {};
     for (const fitnessTest of fitnessTestChosen) {
-      const participatedStudents = new Set<string>();
-      const allStudents = new Set<string>();
-      if (!data[fitnessTest]?.[year]) continue;
-      for (const record of data[fitnessTest][year]) {
-        if (record.score !== null) participatedStudents.add(record.recordToEntity.entityId);
-        allStudents.add(record.recordToEntity.entityId);
+      const scoresGrades = testData.find(
+        (item) => item.name === fitnessTestChosen[0]
+      )?.mainUploadYearsAndClassesScoresGrades;
+      if (!scoresGrades || scoresGrades[yearChosen] === undefined) return null;
+      let sum = 0;
+      for (const class_ in scoresGrades[yearChosen]) {
+        sum += parseInt(scoresGrades[yearChosen][class_][5]);
       }
-      r[fitnessTest] = [participatedStudents.size, allStudents.size - participatedStudents.size];
+      const allStudents = allSchools[yearChosen].reduce((acc, curr) => acc + curr[1], 0);
+      r[fitnessTest] = [sum, allStudents - sum];
     }
     return r;
-  }, [data, fitnessTestChosen, yearClassChosen]);
+  }, [data, fitnessTestChosen, yearChosen, allSchools]);
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 xl:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
         <h2 className="font-semibold text-gray-800 dark:text-gray-100">总参与人数</h2>
       </header>
-      {/* TODO: hide if more than one year */}
       <div className="px-5 pt-4 text-3xl font-bold text-gray-800 dark:text-gray-100 mr-2">
         {totalPeopleThisTest || "--"}人
       </div>

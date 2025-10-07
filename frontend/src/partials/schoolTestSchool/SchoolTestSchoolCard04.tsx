@@ -1,53 +1,224 @@
-import MultipleEntitiesSingleExerciseBarChart from "~/charts/MultipleEntitiesSingleExerciseBarChart";
+import { useStore } from "@nanostores/react";
+import { useMemo } from "react";
 import SingleYearDetailGradeStackedBarChart from "~/charts/SingleYearDetailGradeStackedBarChart";
 import SingleYearDetailScoreBarChart from "~/charts/SingleYearDetailScoreBarChart";
-import type { GENDER_FILTER, GRADING_SCALE_KEYS } from "~/lib/const";
-import { cn } from "~/lib/utils";
-import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
-import { useState } from "react";
-
+import { cn, findGradeFrontend, getYearOrder } from "~/lib/utils";
+import { useSchoolTests } from "~/states/schoolTest";
+import {
+  atomFitnessTestChosen,
+  useAllSchoolTestRecordsBySchoolStore,
+  useAllSchoolTestRecordsByYearStore,
+} from "~/states/schoolTestRecords";
 // TODO: date as global state
-const testData = [
-  {
-    id: 12321,
-    name: "2025年上学期",
-  },
-  {
-    id: 12322,
-    name: "2024年下学期",
-  },
-  {
-    id: 12323,
-    name: "2024年上学期",
-  },
-];
+// const testData = [
+//   {
+//     id: 12321,
+//     name: "2025年上学期",
+//   },
+//   {
+//     id: 12322,
+//     name: "2024年下学期",
+//   },
+//   {
+//     id: 12323,
+//     name: "2024年上学期",
+//   },
+// ];
 
-const classScore = 23.5;
-const classGrade = "优秀" as (typeof GRADING_SCALE_KEYS)[number];
-// const classRank = 2;
-const classPassRate = 80;
-// const dataSelected = [12321, 12322];
-const yearHighestScore = {
-  score: 25,
-  grade: "优秀" as (typeof GRADING_SCALE_KEYS)[number],
-  student: "SAM Y",
-};
+// const classScore = 23.5;
+// const classGrade = "优秀" as (typeof GRADING_SCALE_KEYS)[number];
+// // const classRank = 2;
+// const classPassRate = 80;
+// // const dataSelected = [12321, 12322];
+// const yearHighestScore = {
+//   score: 25,
+//   grade: "优秀" as (typeof GRADING_SCALE_KEYS)[number],
+//   student: "SAM Y",
+// };
 
-function SingleSchoolDetailGradeBarCard() {
-  const [selected, setSelected] = useState<(typeof GENDER_FILTER)[number]>("总计");
-  const [open, setOpen] = useState(false);
+function SingleSchoolDetailGradeBarCard({ type }: { type: string }) {
+  const data = useAllSchoolTestRecordsBySchoolStore().data;
+  const yearData = useAllSchoolTestRecordsByYearStore().data;
+  const testData = useSchoolTests().data?.data ?? [];
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+
+  const years = useMemo(() => {
+    if (!yearData || fitnessTestChosen.length === 0) return [];
+    const allYears = new Set<string>();
+    for (const test of fitnessTestChosen) {
+      if (!yearData[test]) continue;
+      const t = Object.keys(yearData[test]);
+      for (const year of t) {
+        allYears.add(year);
+      }
+    }
+    return Array.from(allYears).toSorted((a, b) => getYearOrder(a[0]) - getYearOrder(b[0]));
+  }, [yearData, fitnessTestChosen]);
+
+  const d = useMemo(() => {
+    if (!data || !testData || fitnessTestChosen.length === 0) return null;
+    let sum = 0;
+    let passing = 0;
+    let totalPeople = 0;
+    let bestStudent = {
+      score: 0,
+      grade: "--",
+      student: "--",
+    };
+    const scoresGrades = testData.find(
+      (item) => item.name === fitnessTestChosen[0]
+    )?.mainUploadYearsAndClassesScoresGrades;
+    if (!scoresGrades) return null;
+    for (const year in scoresGrades) {
+      for (const class_ in scoresGrades[year]) {
+        if (type === "50米×8往返跑") {
+          if (year !== "五年级" && year !== "六年级") {
+            continue;
+          }
+        }
+        totalPeople += parseInt(scoresGrades[year][class_][5]);
+      }
+    }
+    for (const record of data[fitnessTestChosen[0]]) {
+      if (record.recordType === type && record.normalizedScore !== null) {
+        sum += record.normalizedScore;
+        if (type === "体重指数（BMI）") {
+          if (record.grade !== "肥胖") {
+            passing++;
+          }
+        } else {
+          if (record.grade !== "不及格") {
+            passing++;
+          }
+        }
+        if (record.normalizedScore > bestStudent.score) {
+          bestStudent = {
+            score: record.normalizedScore,
+            grade: record.grade ?? "--",
+            student: record.recordToEntity.name,
+          };
+        }
+      }
+    }
+    return {
+      classScore: (sum / totalPeople).toFixed(1),
+      grade: findGradeFrontend(sum / totalPeople),
+      classPassRate: ((passing / totalPeople) * 100).toFixed(1),
+      bestStudent: bestStudent,
+    };
+  }, [data, fitnessTestChosen, testData]);
+
+  const [dataSet, totalStudents] = useMemo(() => {
+    if (!data || !testData || fitnessTestChosen.length === 0 || years.length === 0) return [[], {}];
+    const res: { label: string; date: Date; data: number[]; grade: string }[] = [];
+    const totalStudents: Record<string, Record<string, number>> = {};
+    for (const test of fitnessTestChosen) {
+      if (!totalStudents[test]) totalStudents[test] = {};
+      let gradeExcellent: Record<string, number> = {};
+      let gradeGood: Record<string, number> = {};
+      let gradeAverage: Record<string, number> = {};
+      let gradeFailed: Record<string, number> = {};
+      if (!data[test]) continue;
+      for (const record of data[test]) {
+        if (!record.recordToEntity.year) continue;
+        if (!totalStudents[test][record.recordToEntity.year]) {
+          totalStudents[test][record.recordToEntity.year] = 0;
+        }
+        if (!gradeExcellent.hasOwnProperty(record.recordToEntity.year)) {
+          gradeExcellent[record.recordToEntity.year] = 0;
+        }
+        if (!gradeGood.hasOwnProperty(record.recordToEntity.year)) {
+          gradeGood[record.recordToEntity.year] = 0;
+        }
+        if (!gradeAverage.hasOwnProperty(record.recordToEntity.year)) {
+          gradeAverage[record.recordToEntity.year] = 0;
+        }
+        if (!gradeFailed.hasOwnProperty(record.recordToEntity.year)) {
+          gradeFailed[record.recordToEntity.year] = 0;
+        }
+
+        if (record.recordType === type && record.grade !== null) {
+          totalStudents[test][record.recordToEntity.year] += 1;
+          if (type === "体重指数（BMI）") {
+            gradeExcellent[record.recordToEntity.year] += record.grade === "正常" ? 1 : 0;
+            gradeGood[record.recordToEntity.year] += record.grade === "低体重" ? 1 : 0;
+            gradeAverage[record.recordToEntity.year] += record.grade === "超重" ? 1 : 0;
+            gradeFailed[record.recordToEntity.year] += record.grade === "肥胖" ? 1 : 0;
+          } else {
+            gradeExcellent[record.recordToEntity.year] += record.grade === "优秀" ? 1 : 0;
+            gradeGood[record.recordToEntity.year] += record.grade === "良好" ? 1 : 0;
+            gradeAverage[record.recordToEntity.year] += record.grade === "及格" ? 1 : 0;
+            gradeFailed[record.recordToEntity.year] += record.grade === "不及格" ? 1 : 0;
+          }
+        }
+      }
+      const da = new Date(testData.find((item) => item.id === test)?.fitnessTestDate ?? new Date());
+      res.push({
+        label: test,
+        date: da,
+        data: years.map((year) => gradeExcellent[year] ?? 0),
+        grade: type === "体重指数（BMI）" ? "正常" : "优秀",
+      });
+      res.push({
+        label: test,
+        date: da,
+        data: years.map((year) => gradeGood[year] ?? 0),
+        grade: type === "体重指数（BMI）" ? "低体重" : "良好",
+      });
+      res.push({
+        label: test,
+        date: da,
+        data: years.map((year) => gradeAverage[year] ?? 0),
+        grade: type === "体重指数（BMI）" ? "超重" : "及格",
+      });
+      res.push({
+        label: test,
+        date: da,
+        data: years.map((year) => gradeFailed[year] ?? 0),
+        grade: type === "体重指数（BMI）" ? "肥胖" : "不及格",
+      });
+    }
+    return [res, totalStudents];
+  }, [data, fitnessTestChosen, testData, years]);
+
+  const dataSet2 = useMemo(() => {
+    if (!data || fitnessTestChosen.length === 0 || !testData || years.length === 0) return null;
+    const res: { label: string; date: Date; data: number[] }[] = [];
+    for (const test of fitnessTestChosen) {
+      let scores: Record<string, [number, number]> = {};
+      if (!data[test]) continue;
+      for (const record of data[test]) {
+        if (!record.recordToEntity.year) continue;
+        if (!scores[record.recordToEntity.year]) {
+          scores[record.recordToEntity.year] = [0, 0];
+        }
+        if (record.recordType === type && record.normalizedScore !== null) {
+          scores[record.recordToEntity.year][0] += record.normalizedScore;
+          scores[record.recordToEntity.year][1] += 1;
+        }
+      }
+
+      const da = new Date(testData.find((item) => item.id === test)?.fitnessTestDate ?? new Date());
+      res.push({
+        label: test,
+        date: da,
+        data: years.map((year) =>
+          scores[year] ? Number((scores[year]?.[0] / scores[year]?.[1]).toFixed(1)) : 0
+        ),
+      });
+    }
+    return res;
+  }, [data, fitnessTestChosen, testData, years]);
 
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 xl:col-span-full bg-white dark:bg-gray-800 shadow-xs rounded-xl justify-between">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex xl:items-center xl:justify-between justify-start items-stretch xl:flex-row flex-col flex-wrap gap-y-2 ">
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap">
-          一分钟俯卧撑
-        </h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap">{type}</h2>
         <div className="flex justify-between items-center pt-3 xl:pt-0">
-          <div className="flex whitespace-nowrap -space-x-px">
+          {/* <div className="flex whitespace-nowrap -space-x-px">
             <button
               className={cn(
-                "btn-xs sm:px-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60  rounded-none first:rounded-l-lg last:rounded-r-lg",
+                "btn-xs sm:px-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-none first:rounded-l-lg last:rounded-r-lg",
                 selected === "总计" && "text-violet-500 dark:text-violet-500"
               )}
               onClick={() => setSelected("总计")}
@@ -78,7 +249,7 @@ function SingleSchoolDetailGradeBarCard() {
             onClick={() => setOpen(true)}
           >
             更多
-          </button>
+          </button> */}
         </div>
       </header>
       <div className="grid grid-cols-13">
@@ -86,72 +257,97 @@ function SingleSchoolDetailGradeBarCard() {
           <div className="flex items-start justify-start flex-col max-sm:*:w-1/2 pl-8 py-4 lg:py-6 gap-4">
             <div className="text-xl lg:text-2xl font-bold text-gray-800 dark:text-gray-100">
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                2025年上学期
+                {fitnessTestChosen[0]}
               </div>
-              <span className="-ml-0.5">合格率 {classPassRate}%</span>
+              <span className="-ml-0.5">合格率 {d?.classPassRate ?? "--"}%</span>
             </div>
-            <div>
-              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                最高分
-              </div>
-              <div className="text-xs -mb-0.5 font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                三年のA班
-              </div>
-              <div className="flex items-start">
-                <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                  {yearHighestScore.student} {yearHighestScore.score}
+            {type !== "体重指数（BMI）" && (
+              <div>
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                  最高分
                 </div>
-                <div
-                  className={cn(
-                    "text-sm font-medium px-1.5 rounded-full",
-                    yearHighestScore.grade === "优秀"
-                      ? "text-purple-700 bg-purple-500/20"
-                      : yearHighestScore.grade === "良好"
-                      ? "text-green-700 bg-green-500/20"
-                      : yearHighestScore.grade === "及格"
-                      ? "text-yellow-700 bg-yellow-500/20"
-                      : "text-red-700 bg-red-500/20"
-                  )}
-                >
-                  {yearHighestScore.grade}
+                <div className="text-xs -mb-0.5 font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                  三年のA班
+                </div>
+                <div className="flex items-start">
+                  <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
+                    {d?.bestStudent.student} {d?.bestStudent.score}
+                  </div>
+                  <div
+                    className={cn(
+                      "text-sm font-medium px-1.5 rounded-full",
+                      d?.bestStudent.grade === "优秀"
+                        ? "text-purple-700 bg-purple-500/20"
+                        : d?.bestStudent.grade === "良好" || d?.bestStudent.grade === "正常"
+                        ? "text-green-700 bg-green-500/20"
+                        : d?.bestStudent.grade === "及格" ||
+                          d?.bestStudent.grade === "低体重" ||
+                          d?.bestStudent.grade === "超重"
+                        ? "text-yellow-700 bg-yellow-500/20"
+                        : "text-red-700 bg-red-500/20"
+                    )}
+                  >
+                    {d?.bestStudent.grade}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <div>
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
                 年平均分
               </div>
               <div className="flex items-start">
                 <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                  {classScore}
+                  {d?.classScore ?? "--"}
                 </div>
                 <div
                   className={cn(
                     "text-sm font-medium px-1.5 rounded-full",
-                    classGrade === "优秀"
+                    d?.grade === "优秀"
                       ? "text-purple-700 bg-purple-500/20"
-                      : classGrade === "良好"
+                      : d?.grade === "良好"
                       ? "text-green-700 bg-green-500/20"
-                      : classGrade === "及格"
+                      : d?.grade === "及格"
                       ? "text-yellow-700 bg-yellow-500/20"
                       : "text-red-700 bg-red-500/20"
                   )}
                 >
-                  {classGrade}
+                  {d?.grade}
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="col-span-full xl:col-span-5">
-          <SingleYearDetailScoreBarChart height={250} />
+        <div className="col-span-full">
+          {dataSet2 && dataSet2.length && years.length > 0 ? (
+            <SingleYearDetailScoreBarChart height={250} dataFetched={dataSet2} classes={years} />
+          ) : (
+            <div className="flex flex-col justify-center items-center h-[200px]">
+              <p className="text-gray-500 dark:text-gray-400">暂无数据</p>
+            </div>
+          )}
         </div>
-        <div className="col-span-full xl:col-span-5">
-          <SingleYearDetailGradeStackedBarChart height={250} />
+        <div className="col-span-full">
+          {dataSet &&
+          dataSet.length &&
+          years.length > 0 &&
+          Object.keys(totalStudents).length > 0 ? (
+            <SingleYearDetailGradeStackedBarChart
+              height={250}
+              dataFetched={dataSet}
+              classes={years}
+              type={type}
+              totalStudents={totalStudents}
+            />
+          ) : (
+            <div className="flex flex-col justify-center items-center h-[200px]">
+              <p className="text-gray-500 dark:text-gray-400">暂无数据</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <Dialog open={open} onClose={setOpen} className="relative z-[9999]">
+      {/* <Dialog open={open} onClose={setOpen} className="relative z-[9999]">
         <DialogBackdrop
           transition
           className="fixed inset-0 bg-gray-500/75 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
@@ -170,7 +366,7 @@ function SingleSchoolDetailGradeBarCard() {
                     <div className="flex flex-wrap -space-x-px">
                       <button
                         className={cn(
-                          "btn-xs sm:px-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 rounded-none first:rounded-l-lg last:rounded-r-lg",
+                          "btn-xs sm:px-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-none first:rounded-l-lg last:rounded-r-lg",
                           selected === "总计" && "text-violet-500 dark:text-violet-500"
                         )}
                         onClick={() => setSelected("总计")}
@@ -206,23 +402,13 @@ function SingleSchoolDetailGradeBarCard() {
                 </header>
                 <div className="px-5 pt-4 text-3xl font-bold text-gray-800 dark:text-gray-100 mr-2 flex sm:gap-4 gap-2 items-end flex-wrap">
                   一分钟俯卧撑
-                  {/* {dataSelected.length === 1 && (
-                    <div className="lg:pl-6 flex flex-wrap sm:gap-4 gap-2">
-                      <span className="lg:text-lg text-base text-gray-600 dark:text-gray-400">
-                        平均分 {classScore}分
-                      </span>
-                      <span className="lg:text-lg text-base text-gray-600 dark:text-gray-400">
-                        年级名次 {classRank}名
-                      </span>
-                    </div>
-                  )} */}
                 </div>
                 <MultipleEntitiesSingleExerciseBarChart />
               </div>
             </DialogPanel>
           </div>
         </div>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }

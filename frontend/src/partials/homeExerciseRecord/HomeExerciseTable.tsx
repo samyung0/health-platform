@@ -1,4 +1,4 @@
-import { useHomeExerciseRecords } from "~/states/homeExercise";
+import { useHomeExerciseRecords } from "~/states/homeExerciseRecords";
 import UploadHomeExerciseTableItem from "./HomeExerciseTableItem";
 
 function HomeExerciseTable() {
@@ -22,31 +22,31 @@ function HomeExerciseTable() {
             {/* Table header */}
             <thead className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700/60">
               <tr>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">项目</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">姓名</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">运动成绩</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">运动耗时</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">成绩等级</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">年级</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">班级</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">日期</div>
                 </th>
-                <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
+                <th className="px-2 first:pl-5 last:pr-3 whitespace-nowrap">
                   <div className="font-semibold text-left">操作</div>
                 </th>
               </tr>

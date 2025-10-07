@@ -240,6 +240,9 @@ export const schoolTestUpload = async (
             totalAvgNormScore: number;
             totalProcessed: number;
             totalPassing: number;
+            normScore: number;
+            additionalScore: number;
+            totalParticipating: number;
           }
         >
       > = {}; // [avgNormScore, grade]
@@ -338,8 +341,11 @@ export const schoolTestUpload = async (
           if (!classScoresGrades[year][class_])
             classScoresGrades[year][class_] = {
               totalAvgNormScore: 0,
+              normScore: 0,
+              additionalScore: 0,
               totalProcessed: 0,
               totalPassing: 0,
+              totalParticipating: 0,
             };
 
           if (recordsToProcess === "all") validStudentRecords.push(dataToProcess[i]);
@@ -347,6 +353,7 @@ export const schoolTestUpload = async (
           try {
             let weightedSum = 0;
             let additionalScoreSum = 0;
+            let hasAnyNonNullScore = false;
             for (let j = 0; j < slicedHeaders.length; j++) {
               const isApplicableToGender =
                 mappedHeaders[j].applicableToGender === "全部" ||
@@ -367,6 +374,8 @@ export const schoolTestUpload = async (
                 toEntityClassification: validClassification_[0].id,
                 fromEntityClassification: classificationId,
               };
+
+              if (row.score !== null && row.score !== undefined) hasAnyNonNullScore = true;
 
               // do not calculate for 身高，体重, empty record
               if (!mappedHeaders[j]!.isCalculatedAndReported || !row.score) {
@@ -477,9 +486,12 @@ export const schoolTestUpload = async (
 
             if (recordsToProcess === "all") {
               classScoresGrades[year][class_].totalAvgNormScore += weightedSum + additionalScoreSum;
+              classScoresGrades[year][class_].normScore += weightedSum;
+              classScoresGrades[year][class_].additionalScore += additionalScoreSum;
               classScoresGrades[year][class_].totalProcessed++;
               if (weightedSum + additionalScoreSum >= 60)
                 classScoresGrades[year][class_].totalPassing++;
+              if (hasAnyNonNullScore) classScoresGrades[year][class_].totalParticipating++;
             }
           } catch (error) {
             // tx.rollback();
@@ -560,15 +572,24 @@ export const schoolTestUpload = async (
           if (!newRecord[year][class_]) newRecord[year][class_] = [];
           const avgScore =
             classScoresGrades[year][class_].totalAvgNormScore /
-            classScoresGrades[year][class_].totalProcessed;
+            classScoresGrades[year][class_].totalParticipating;
           const grade = findGrade(avgScore);
           newRecord[year][class_] = [
             avgScore.toFixed(1),
             grade!,
             (
               classScoresGrades[year][class_].totalPassing /
-              classScoresGrades[year][class_].totalProcessed
+              classScoresGrades[year][class_].totalParticipating
+            ).toFixed(2),
+            (
+              classScoresGrades[year][class_].normScore /
+              classScoresGrades[year][class_].totalParticipating
             ).toFixed(1),
+            (
+              classScoresGrades[year][class_].additionalScore /
+              classScoresGrades[year][class_].totalParticipating
+            ).toFixed(1),
+            classScoresGrades[year][class_].totalParticipating.toString(),
           ];
         }
       }

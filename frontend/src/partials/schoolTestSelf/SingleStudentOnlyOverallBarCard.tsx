@@ -4,13 +4,14 @@ import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
 import { useSchoolTests } from "~/states/schoolTest";
 import {
   useAllSchoolTestRecordsByMeStore,
-  useSchoolTestSelfFitnessTestChosen,
+  atomFitnessTestChosen,
 } from "~/states/schoolTestRecords";
+import { useStore } from "@nanostores/react";
 
 function SingleStudentOnlyOverallBarCard() {
   const data = useAllSchoolTestRecordsByMeStore().data;
   const testData = useSchoolTests().data;
-  const { fitnessTestChosen } = useSchoolTestSelfFitnessTestChosen();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const mapped = useMemo(() => {
     if (!data || !testData?.data) return [];
     const r: { label: string; date: Date; data: (number | null)[] }[] = [];
@@ -24,7 +25,7 @@ function SingleStudentOnlyOverallBarCard() {
         ),
         data: FRONTEND_EXERCISE_TYPES.map(
           (type) => item.find((item) => item.recordType === type)?.normalizedScore ?? null
-        ),
+        ).filter((m) => m !== null),
       });
     }
     return r;

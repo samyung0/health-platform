@@ -7,22 +7,26 @@ import SingleStudentOnlyOverallBarCard from "~/partials/schoolTestSelf/SingleStu
 import SingleStudentOnlyOverallRadarCard from "~/partials/schoolTestSelf/SingleStudentOnlyOverallRadarCard";
 import SingleScoreSingleDateCard from "~/partials/schoolTestSelf/SingleScoreSingleDateCard";
 import SingleScoreSingleDateBMICard from "~/partials/schoolTestSelf/SingleScoreSingleDateBMICard";
-import { useSchoolTestSelfFitnessTestChosen } from "~/states/schoolTestRecords";
+import {
+  atomFitnessTestChosen,
+  useSchoolTestFitnessTestAvailable,
+} from "~/states/schoolTestRecords";
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
 import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
+import { useStore } from "@nanostores/react";
 function Dashboard() {
   const { data: session } = authClient.useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { fitnessTestAvailable, fitnessTestChosen, setFitnessTestChosen } =
-    useSchoolTestSelfFitnessTestChosen();
+  const { fitnessTestAvailable } = useSchoolTestFitnessTestAvailable();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
 
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
     [fitnessTestAvailable.length]
   );
 
-  if (!session) return <div>Loading...</div>;
+  if (!session) return <div>加载中 ...</div>;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -54,7 +58,7 @@ function Dashboard() {
                       <button
                         className="btn-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-500 dark:text-gray-400 hover:[&>div:last-child]:opacity-100"
                         onClick={() =>
-                          setFitnessTestChosen(
+                          atomFitnessTestChosen.set(
                             fitnessTestChosen.filter((name) => name !== fitnessTestName)
                           )
                         }
@@ -91,7 +95,7 @@ function Dashboard() {
                     name: fitnessTestName,
                   }))}
                   onSelectChange={(selected) => {
-                    setFitnessTestChosen(selected);
+                    atomFitnessTestChosen.set(selected);
                   }}
                   label="体测对比"
                   defaultSelected={fitnessTestChosen}

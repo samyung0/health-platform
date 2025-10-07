@@ -100,9 +100,9 @@ function DropdownProfile({ align }: { align: "left" | "right" }) {
               <button
                 className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3"
                 onClick={() => {
+                  redirect("/signin");
                   authClient.signOut();
                   setDropdownOpen(false);
-                  redirect("/signin");
                 }}
               >
                 退出登录

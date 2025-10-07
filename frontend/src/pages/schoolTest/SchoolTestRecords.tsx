@@ -2,12 +2,12 @@ import { useState } from "react";
 
 import Sidebar from "../../partials/Sidebar";
 import Header from "../../partials/Header";
-import HomeExerciseTable from "~/partials/homeExerciseRecord/HomeExerciseTable";
-import HomeExerciseDialog from "~/partials/homeExerciseRecord/HomeExerciseDialog";
+// import SchoolTestRecordsDialog from "~/partials/schoolTestRecords/SchoolTestRecordsDialog";
+import SchoolTestRecordsTable from "~/partials/schoolTestRecords/SchoolTestRecordsTable";
 
-function HomeExerciseAllRecords() {
+function SchoolTestRecords() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [openUploadHomeExercise, setOpenUploadHomeExercise] = useState(false);
+  const [openUploadSchoolTest, setOpenUploadSchoolTest] = useState(false);
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -26,15 +26,15 @@ function HomeExerciseAllRecords() {
               {/* Left: Title */}
               <div className="mb-4 sm:mb-0">
                 <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
-                  校外体锻数据
+                  体测数据
                 </h1>
               </div>
 
               {/* Right: Actions */}
               <div className="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
-                <button
+                {/* <button
                   className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                  onClick={() => setOpenUploadHomeExercise(true)}
+                  onClick={() => setOpenUploadSchoolTest(true)}
                 >
                   <svg
                     className="fill-current shrink-0 xs:hidden"
@@ -44,14 +44,14 @@ function HomeExerciseAllRecords() {
                   >
                     <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
                   </svg>
-                  <span className="max-xs:sr-only">上传体锻记录</span>
-                </button>
+                  <span className="max-xs:sr-only">上传体测记录</span>
+                </button> */}
               </div>
             </div>
 
             {/* Table */}
-            <HomeExerciseTable />
-            <HomeExerciseDialog open={openUploadHomeExercise} setOpen={setOpenUploadHomeExercise} />
+            <SchoolTestRecordsTable />
+            {/* <SchoolTestRecordsDialog open={openUploadHomeExercise} setOpen={setOpenUploadHomeExercise} /> */}
           </div>
         </main>
       </div>
@@ -59,4 +59,4 @@ function HomeExerciseAllRecords() {
   );
 }
 
-export default HomeExerciseAllRecords;
+export default SchoolTestRecords;

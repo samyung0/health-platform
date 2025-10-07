@@ -9,7 +9,13 @@ import {
 } from "@/db/schema";
 import { DEFAULT_OUTDATED_DAY, DEFAULT_OUTDATED_MONTH } from "@/lib/const";
 import { createRouter } from "@/lib/create-app";
-import { checkValidClassification, checkValidSession, findGrade, findTestScores } from "@/lib/util";
+import {
+  checkValidClassification,
+  checkValidSession,
+  findGrade,
+  findTestBMIScoreAndGrade,
+  findTestScores,
+} from "@/lib/util";
 import { getRecordsQueryValidator, uploadHomeExerciseValidator } from "@/lib/validators";
 import withQueryableId from "@/middlewares/with-queryable-id";
 import { zValidator } from "@hono/zod-validator";
@@ -604,22 +610,36 @@ const router = createRouter()
       if (!calculatedScore) {
         throw new Error("需要同时填写运动成绩和运动耗时");
       }
-      const { normalizedScore, additionalScore } = findTestScores(
-        calculatedScore,
-        measure.testName,
-        session.allClassifications[0].gender,
-        session.allClassifications[0].schoolType,
-        session.allClassifications[0].year || "六年级",
-        measure.compareDirection
-      );
+      let normalizedScore_: number = 0;
+      let additionalScore_: number = 0;
+      if (measure.testName === "体重指数（BMI）") {
+        const { normalizedScore } = findTestBMIScoreAndGrade(
+          calculatedScore,
+          session.allClassifications[0].gender,
+          session.allClassifications[0].schoolType,
+          session.allClassifications[0].year || "六年级"
+        );
+        normalizedScore_ = normalizedScore;
+      } else {
+        const { normalizedScore, additionalScore } = findTestScores(
+          calculatedScore,
+          measure.testName,
+          session.allClassifications[0].gender,
+          session.allClassifications[0].schoolType,
+          session.allClassifications[0].year || "六年级",
+          measure.compareDirection
+        );
+        normalizedScore_ = normalizedScore;
+        additionalScore_ = additionalScore;
+      }
       const record_: InferInsertModel<typeof record> = {
         ...json,
         nature: "exercise",
         inSchool: false,
         score: calculatedScore,
-        normalizedScore: normalizedScore,
-        additionalScore: additionalScore,
-        grade: findGrade(normalizedScore),
+        normalizedScore: normalizedScore_,
+        additionalScore: additionalScore_,
+        grade: findGrade(normalizedScore_),
         // TODO: check permission
         toEntityClassification:
           activeClassification.length > 0
@@ -628,9 +648,9 @@ const router = createRouter()
         fromEntityClassification: session.activeClassifications[0].classificationId,
       };
       await db.insert(record).values(record_);
-    } catch (error) {
-      error = error instanceof Error ? error.message : (error as string);
-      console.error(error);
+    } catch (e) {
+      error = e instanceof Error ? e.message : (e as string);
+      console.error(e);
     }
 
     if (error) {

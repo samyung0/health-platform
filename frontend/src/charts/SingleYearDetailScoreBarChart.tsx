@@ -13,6 +13,7 @@ import {
   type ChartData,
   BarElement,
   Title,
+  type Tick,
 } from "chart.js";
 import "chartjs-adapter-moment";
 
@@ -125,11 +126,16 @@ function SingleYearDetailScoreBarChart({
             maxTicksLimit: 6,
             color: darkMode ? textColor.dark : textColor.light,
             backdropColor: darkMode ? backdropColor.dark : backdropColor.light,
+            callback: function (tickValue: string | number, index: number, ticks: Tick[]) {
+              return tickValue + "分";
+            },
           },
           grid: {
             color: darkMode ? gridColor.dark : gridColor.light,
           },
           suggestedMin: 0,
+          suggestedMax: 100,
+          // max: 100,
         },
         x: {
           border: {

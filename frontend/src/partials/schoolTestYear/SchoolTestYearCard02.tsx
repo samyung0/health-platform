@@ -1,9 +1,8 @@
 import SingleClassTotalGradeDonutChart from "~/charts/SingleClassTotalGradeDonutChart";
 import {
-  useSchoolTestClassFitnessTestChosen,
+  atomFitnessTestChosen,
   useAllSchoolTestRecordsByYearStore,
 } from "~/states/schoolTestRecords";
-import { useAllSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
 import { useMemo } from "react";
 import { useStore } from "@nanostores/react";
@@ -12,33 +11,44 @@ import { atomYearChosen } from "~/states/schoolTestRecords";
 function SingleClassTotalGradeDonutCard() {
   const data = useAllSchoolTestRecordsByYearStore().data;
   const testData = useSchoolTests().data?.data ?? [];
-  const allSchools = useAllSchoolData().data?.data ?? {};
-  const { fitnessTestChosen } = useSchoolTestClassFitnessTestChosen();
-  const yearClassChosen = useStore(atomYearChosen);
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const yearChosen = useStore(atomYearChosen);
   const passingRate = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
-    const year = yearClassChosen;
+    if (!data || fitnessTestChosen.length === 0 || !yearChosen) return null;
+    const year = yearChosen;
     const scoresGrades = testData.find(
       (item) => item.name === fitnessTestChosen[0]
     )?.mainUploadYearsAndClassesScoresGrades;
     if (!scoresGrades || !scoresGrades[year]) return null;
-    return scoresGrades[year][2];
-  }, [data, fitnessTestChosen, yearClassChosen]);
+    let totalParticipating = 0;
+    let totalPassing = 0;
+    for (const class_ in scoresGrades[year]) {
+      totalParticipating += parseInt(scoresGrades[year][class_][5]);
+      totalPassing +=
+        parseFloat(scoresGrades[year][class_][2]) * parseInt(scoresGrades[year][class_][5]);
+    }
+    return ((totalPassing / totalParticipating) * 100).toFixed(1);
+  }, [data, fitnessTestChosen, yearChosen]);
   const dataSet = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
-    const year = yearClassChosen;
-    if (!allSchools[year]) return [];
+    if (!data || fitnessTestChosen.length === 0 || !yearChosen) return null;
     return fitnessTestChosen
       .map((test) => {
         const tt = testData.find((item) => item.name === test)!;
+        const scoresGrades = testData.find(
+          (item) => item.name === test
+        )?.mainUploadYearsAndClassesScoresGrades;
+        if (!tt || !scoresGrades || scoresGrades[yearChosen] === undefined) return null;
         let passing = 0;
         let failing = 0;
-        if (!tt.mainUploadYearsAndClassesScoresGrades[year]) return null;
-        for (const [class_, s] of Object.entries(tt.mainUploadYearsAndClassesScoresGrades[year])) {
-          const c = allSchools[year].find(([class2, total]) => class2 === class_);
-          if (!c) continue;
-          passing += Math.round(parseFloat(s[2]) * c[1]);
-          failing += Math.round((1 - parseFloat(s[2])) * c[1]);
+        for (const class_ in scoresGrades[yearChosen]) {
+          passing += Math.round(
+            parseFloat(scoresGrades[yearChosen][class_][2]) *
+              parseInt(scoresGrades[yearChosen][class_][5])
+          );
+          failing += Math.round(
+            (1 - parseFloat(scoresGrades[yearChosen][class_][2])) *
+              parseInt(scoresGrades[yearChosen][class_][5])
+          );
         }
         return {
           label: test,
@@ -53,7 +63,6 @@ function SingleClassTotalGradeDonutCard() {
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
         <h2 className="font-semibold text-gray-800 dark:text-gray-100">总成绩及格率</h2>
       </header>
-      {/* TODO: hide if more than one year */}
       <div className="px-5 pt-4 text-3xl font-bold text-gray-800 dark:text-gray-100 mr-2">
         {passingRate ?? "--"}%
       </div>

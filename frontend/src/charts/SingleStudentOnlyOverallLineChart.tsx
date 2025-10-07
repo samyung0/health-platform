@@ -111,7 +111,15 @@ const timeRange: { from: Date; to: Date } = {
   to: new Date(2018, 11, 11),
 };
 
-function SingleStudentOnlyOverallLineChart({ height }: { height?: number }) {
+function SingleStudentOnlyOverallLineChart({
+  height,
+  dataFetched,
+  timeRange,
+}: {
+  height?: number;
+  dataFetched: { label: string; data: { createdAt: string; normalizedScore: number }[] }[];
+  timeRange: { from: Date; to: Date };
+}) {
   const [chart, setChart] = useState<Chart<
     keyof ChartTypeRegistry,
     {
@@ -195,9 +203,15 @@ function SingleStudentOnlyOverallLineChart({ height }: { height?: number }) {
           type: "time",
           display: true,
           time: {
-            unit: "day",
+            // if < 14 days, use day, otherwise use week
+            unit:
+              new Date(timeRange.to).getTime() - new Date(timeRange.from).getTime() <=
+              14 * 24 * 60 * 60 * 1000
+                ? "day"
+                : "week",
             displayFormats: {
               day: "MM/DD",
+              week: "MM/DD",
             },
           },
           border: {
@@ -210,11 +224,13 @@ function SingleStudentOnlyOverallLineChart({ height }: { height?: number }) {
             // maxRotation: 0,
             color: darkMode ? textColor.dark : textColor.light,
           },
+          min: timeRange.from as unknown as string,
+          max: timeRange.to as unknown as string,
           suggestedMin: timeRange.from as unknown as string,
           suggestedMax: timeRange.to as unknown as string,
         },
       } as const),
-    [darkMode]
+    [darkMode, timeRange]
   );
 
   const plugins = useMemo(

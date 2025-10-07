@@ -57,7 +57,15 @@ const dataFetched = [
 
 const entity = ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级"];
 
-function SingleStudentOnlyOverallBarChart({ height }: { height?: number }) {
+function SingleStudentOnlyOverallBarChart({
+  height,
+  dataFetched,
+  entity,
+}: {
+  height?: number;
+  entity: string[];
+  dataFetched: { label: string; date: Date; data: number[] }[];
+}) {
   const [chart, setChart] = useState<Chart | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const legend = useRef<HTMLUListElement>(null);

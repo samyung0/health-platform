@@ -1,9 +1,10 @@
+import { useStore } from "@nanostores/react";
 import { useMemo } from "react";
 import { cn } from "~/lib/utils";
 import {
   useAllSchoolTestRecordsByClassStore,
   useAllSchoolTestRecordsByMeStore,
-  useSchoolTestSelfFitnessTestChosen,
+  atomFitnessTestChosen,
 } from "~/states/schoolTestRecords";
 import { authClient } from "~/utils/betterAuthClient";
 
@@ -18,7 +19,7 @@ function SingleScoreSingleDateCard() {
   const { data: session } = authClient.useSession();
   const data = useAllSchoolTestRecordsByMeStore().data;
   const classData = useAllSchoolTestRecordsByClassStore().data;
-  const { fitnessTestChosen } = useSchoolTestSelfFitnessTestChosen();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const d = useMemo(() => {
     const r = {
       score: "--",
@@ -39,17 +40,13 @@ function SingleScoreSingleDateCard() {
     r.score =
       data[fitnessTestChosen[0]]
         .find((m) => m.recordType === "体重指数（BMI）")
-        ?.normalizedScore?.toFixed(1) ?? "--";
+        ?.score?.toFixed(1) ?? "--";
     r.grade =
       data[fitnessTestChosen[0]].find((m) => m.recordType === "体重指数（BMI）")?.grade ?? "--";
     r.height =
-      data[fitnessTestChosen[0]]
-        .find((m) => m.recordType === "身高")
-        ?.normalizedScore?.toFixed(1) ?? "--";
+      data[fitnessTestChosen[0]].find((m) => m.recordType === "身高")?.score?.toFixed(1) ?? "--";
     r.weight =
-      data[fitnessTestChosen[0]]
-        .find((m) => m.recordType === "体重")
-        ?.normalizedScore?.toFixed(1) ?? "--";
+      data[fitnessTestChosen[0]].find((m) => m.recordType === "体重")?.score?.toFixed(1) ?? "--";
     if (
       session &&
       session.activeClassifications.length > 0 &&
@@ -61,7 +58,7 @@ function SingleScoreSingleDateCard() {
       ]?.filter((m) => m.recordType === "体重指数（BMI）");
       if (bmiRecords && bmiRecords.length > 0) {
         const classSum = bmiRecords?.reduce((acc, curr) => {
-          return acc + (curr.normalizedScore ?? 0);
+          return acc + (curr.score ?? 0);
         }, 0);
         const classAverage = classSum / bmiRecords?.length;
         r.classAverage = classAverage.toFixed(1);

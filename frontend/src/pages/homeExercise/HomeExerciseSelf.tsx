@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Sidebar from "~/partials/Sidebar";
 import Header from "~/partials/Header";
@@ -6,19 +6,25 @@ import { cn } from "~/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "~/components/ui/calendar";
-import SingleTotalCard from "~/partials/schoolExerciseSelf/SingleTotalCard";
-import SingleStudentOnlyOverallLineCard from "~/partials/schoolExerciseSelf/SingleStudentOnlyOverallLineCard";
-import SingleStudentOnlyBMILineCard from "~/partials/schoolExerciseSelf/SingleStudentOnlyBMILineCard";
-import SingleStudentOnlyAnyCard from "~/partials/schoolExerciseSelf/SingleStudentOnlyAnyCard";
+import SingleTotalCard from "~/partials/homeExerciseSelf/SingleTotalCard";
+import SingleStudentOnlyOverallLineCard from "~/partials/homeExerciseSelf/SingleStudentOnlyOverallLineCard";
+import SingleStudentOnlyBMILineCard from "~/partials/homeExerciseSelf/SingleStudentOnlyBMILineCard";
+import SingleStudentOnlyAnyCard from "~/partials/homeExerciseSelf/SingleStudentOnlyAnyCard";
+import { useStore } from "@nanostores/react";
+import { atomHomeExerciseDateRangeChosen } from "~/states/homeExerciseRecords";
 
 // TODO display something when this person did not participate
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // TODO : date logic wiht buttons, set default as 1 week
-  const [date, setDate] = useState<{ from: Date | undefined; to?: Date | undefined } | undefined>(
-    undefined
-  );
+  const date = useStore(atomHomeExerciseDateRangeChosen);
+
+  useEffect(() => {
+    atomHomeExerciseDateRangeChosen.set({
+      from: new Date(new Date().setDate(new Date().getDate() - 7)),
+      to: new Date(),
+    });
+  }, []);
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -86,18 +92,42 @@ function Dashboard() {
                           defaultMonth={date?.from}
                           selected={date}
                           onSelect={(date) => {
-                            setDate(date);
+                            atomHomeExerciseDateRangeChosen.set(date);
                           }}
                         />
                       </PopoverContent>
                     </Popover>
-                    <button className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300">
+                    <button
+                      className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300"
+                      onClick={() =>
+                        atomHomeExerciseDateRangeChosen.set({
+                          from: new Date(new Date().setDate(new Date().getDate() - 7)),
+                          to: new Date(),
+                        })
+                      }
+                    >
                       7天
                     </button>
-                    <button className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300">
+                    <button
+                      className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300"
+                      onClick={() =>
+                        atomHomeExerciseDateRangeChosen.set({
+                          from: new Date(new Date().setDate(new Date().getDate() - 14)),
+                          to: new Date(),
+                        })
+                      }
+                    >
                       14天
                     </button>
-                    <button className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300">
+                    <button
+                      className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300"
+                      onClick={() =>
+                        atomHomeExerciseDateRangeChosen.set({
+                          from: new Date(new Date().setDate(new Date().getDate() - 30)),
+                          to: new Date(),
+                        })
+                      }
+                    >
                       30天
                     </button>
                   </div>
@@ -110,10 +140,9 @@ function Dashboard() {
               <SingleTotalCard />
               <SingleStudentOnlyOverallLineCard />
               <SingleStudentOnlyBMILineCard />
-              <SingleStudentOnlyAnyCard />
-              <SingleStudentOnlyAnyCard />
-              <SingleStudentOnlyAnyCard />
-              <SingleStudentOnlyAnyCard />
+              {["50米跑", "坐位体前屈", "跳绳", "仰卧起坐", "50米×8往返跑"].map((item) => (
+                <SingleStudentOnlyAnyCard key={item} type={item} />
+              ))}
             </div>
           </div>
         </main>

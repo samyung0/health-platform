@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { cn } from "~/lib/utils";
 import { queryClient } from "~/utils/QueryClient";
+import { useSchoolTests } from "~/states/schoolTest";
 
 const measureType = measureType_ as {
   testName: string;
@@ -19,43 +20,50 @@ const measureType = measureType_ as {
   compareDirection: string;
 }[];
 
-function HomeExerciseTableItem(
-  props: InferResponseType<typeof recordRouterClient.api.records.homeExercise.$get>["data"][number]
+function SchoolTestRecordsItem(
+  props: InferResponseType<typeof recordRouterClient.api.records.schoolTest.$get>["data"][number]
 ) {
   const [dangerModalOpen, setDangerModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const fitnessTestData = useSchoolTests().data?.data ?? [];
   return (
     <tbody className="text-sm">
       {/* Row */}
       <tr>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
-          <div>{props.recordType}</div>
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+          <div>{props.fitnessTestName}</div>
         </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
           <div>{props.recordToEntity.name}</div>
         </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+          <div>{props.recordType}</div>
+        </td>
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
           <div>
             {props.score?.toFixed(1)}（
-            {measureType.find((measure) => measure.exerciseName === props.recordType)?.unit}）
+            {measureType.find((measure) => measure.testName === props.recordType)?.unit}）
           </div>
         </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
-          <div>{props.exerciseDuration}（分钟）</div>
-        </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
           <div>{props.grade}</div>
         </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
           <div>{props.recordToEntity.year}</div>
         </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
           <div>{props.recordToEntity.class}</div>
         </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
-          <div>{props.exerciseDate && new Date(props.exerciseDate).toLocaleDateString()}</div>
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+          <div>
+            {fitnessTestData.find((item) => item.id === props.recordType)?.fitnessTestDate
+              ? new Date(
+                  fitnessTestData.find((item) => item.id === props.recordType)!.fitnessTestDate!
+                ).toLocaleDateString()
+              : new Date(props.createdAt).toLocaleDateString()}
+          </div>
         </td>
-        <td className="px-2 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
+        <td className="px-1 first:pl-5 last:pr-3 py-1 whitespace-nowrap">
           <DropdownEditMenu align="right" className="relative inline-flex">
             <li>
               <button
@@ -172,4 +180,4 @@ function HomeExerciseTableItem(
   );
 }
 
-export default HomeExerciseTableItem;
+export default SchoolTestRecordsItem;

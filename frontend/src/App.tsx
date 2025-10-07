@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate, redirect, type RouteProps } from "react-router-dom";
 
 import "./css/style.css";
 
@@ -84,64 +84,181 @@ import HomeExerciseSelf from "./pages/homeExercise/HomeExerciseSelf";
 import HomeExerciseAllRecords from "./pages/homeExercise/HomeExerciseAllRecords";
 import { useAllSchoolData, useQueryableSchoolData } from "./states/schoolData";
 import { useSchoolTests } from "./states/schoolTest";
+import SchoolTestRecords from "~/pages/schoolTest/SchoolTestRecords";
+import Default from "~/pages/Default";
+import Signin from "./pages/Signin";
 
-function App() {
-  const location = useLocation();
-  const { data: session } = authClient.useSession();
+function PrivateRoute({ children }: RouteProps) {
+  const { data: session, isPending } = authClient.useSession();
 
   const schoolData = useAllSchoolData();
   const testData = useSchoolTests();
   const queryableYearsAndClasses = useQueryableSchoolData();
 
   useEffect(() => {
-    if (!session) {
-      // redirect to login
-    } else {
-      // redirect to home
-    }
-    queryClient.invalidateQueries({ type: "session" });
+    if (!session) return;
+    queryClient.invalidateQueries({
+      queryKey: ["session"],
+    });
   }, [session]);
+
+  if (isPending) {
+    return (
+      <div className="flex items-center justify-center h-[100vh] h-[100dvh] w-full overflow-hidden">
+        加载中 ...
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  if (schoolData.isPending || testData.isPending || queryableYearsAndClasses.isPending) {
+    return (
+      <div className="flex items-center justify-center h-[100vh] h-[100dvh] w-full overflow-hidden">
+        加载中 ...
+      </div>
+    );
+  }
+
+  return children;
+}
+
+function App() {
+  const location = useLocation();
 
   useEffect(() => {
     // authClient.signOut();
     // authClient.revokeSession();
     // authClient.signIn.username({
-    //   username: "admin",
-    //   password: "admin123",
+    //   username: "20260046",
+    //   password: "20260046",
     // });
   }, []);
 
   useEffect(() => {
-    document.querySelector("html").style.scrollBehavior = "auto";
+    document.querySelector("html")!.style.scrollBehavior = "auto";
     window.scroll({ top: 0 });
-    document.querySelector("html").style.scrollBehavior = "";
+    document.querySelector("html")!.style.scrollBehavior = "";
   }, [location.pathname]); // triggered on route change
-
-  if (location.pathname === "/") {
-    /*  TODO: determine what is the default page for student/teacher etc */
-
-    return <Navigate to="/exportFile" replace />;
-  }
-
-  if (schoolData.isPending || testData.isPending || queryableYearsAndClasses.isPending) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <>
       <Routes>
-        <Route exact path="/schoolTest/self" element={<SchoolTestSelf />} />
-        <Route exact path="/schoolTest/class" element={<SchoolTestClass />} />
-        <Route exact path="/schoolTest/year" element={<SchoolTestYear />} />
-        <Route exact path="/schoolTest/school" element={<SchoolTestSchool />} />
-        <Route exact path="/schoolExercise/self" element={<SchoolExerciseSelf />} />
-        <Route exact path="/schoolExercise/class" element={<SchoolExerciseClass />} />
-        <Route exact path="/schoolExercise/year" element={<SchoolExerciseYear />} />
-        <Route exact path="/schoolExercise/school" element={<SchoolExerciseSchool />} />
-        <Route exact path="/homeExercise/self" element={<HomeExerciseSelf />} />
-        <Route exact path="/homeExercise/allRecords" element={<HomeExerciseAllRecords />} />
-        <Route exact path="/uploadFile" element={<UploadFile />} />
-        <Route exact path="/exportFile" element={<ExportFile />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Default />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolTest/self"
+          element={
+            <PrivateRoute>
+              <SchoolTestSelf />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolTest/class"
+          element={
+            <PrivateRoute>
+              <SchoolTestClass />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolTest/year"
+          element={
+            <PrivateRoute>
+              <SchoolTestYear />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolTest/school"
+          element={
+            <PrivateRoute>
+              <SchoolTestSchool />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolTest/allRecords"
+          element={
+            <PrivateRoute>
+              <SchoolTestRecords />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolExercise/self"
+          element={
+            <PrivateRoute>
+              <SchoolExerciseSelf />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolExercise/class"
+          element={
+            <PrivateRoute>
+              <SchoolExerciseClass />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolExercise/year"
+          element={
+            <PrivateRoute>
+              <SchoolExerciseYear />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/schoolExercise/school"
+          element={
+            <PrivateRoute>
+              <SchoolExerciseSchool />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/homeExercise/self"
+          element={
+            <PrivateRoute>
+              <HomeExerciseSelf />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/homeExercise/allRecords"
+          element={
+            <PrivateRoute>
+              <HomeExerciseAllRecords />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/uploadFile"
+          element={
+            <PrivateRoute>
+              <UploadFile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/exportFile"
+          element={
+            <PrivateRoute>
+              <ExportFile />
+            </PrivateRoute>
+          }
+        />
+        <Route path="/signin" element={<Signin />} />
 
         {/* <Route exact path="/dashboard/analytics" element={<Analytics />} />
         <Route exact path="/dashboard/fintech" element={<Fintech />} />
@@ -206,7 +323,7 @@ function App() {
         <Route exact path="/component/tooltip" element={<TooltipPage />} />
         <Route exact path="/component/accordion" element={<AccordionPage />} />
         <Route exact path="/component/icons" element={<IconsPage />} /> */}
-        <Route exact path="*" element={<PageNotFound />} />
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
   );

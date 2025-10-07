@@ -2,28 +2,28 @@ import { useMemo } from "react";
 import SingleClassTotalParticipationDonutChart from "~/charts/SingleClassTotalParticipationDonutChart";
 import {
   useAllSchoolTestRecordsByClassStore,
-  useSchoolTestClassFitnessTestChosen,
-  useSchoolTestClassClassChosen,
+  atomFitnessTestChosen,
+  atomClassChosen,
 } from "~/states/schoolTestRecords";
 import { useAllSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
+import { useStore } from "@nanostores/react";
 
 function SingleClassTotalParticipationDonutCard() {
   const data = useAllSchoolTestRecordsByClassStore().data;
   const testData = useSchoolTests().data?.data ?? [];
   const allSchools = useAllSchoolData().data?.data ?? {};
-  const { fitnessTestChosen } = useSchoolTestClassFitnessTestChosen();
-  const { classChosen: yearClassChosen } = useSchoolTestClassClassChosen();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const yearClassChosen = useStore(atomClassChosen);
   const totalPeopleThisTest = useMemo<number | null>(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
+    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen) return null;
     const year = yearClassChosen.slice(0, 3);
     const class_ = yearClassChosen.slice(3);
-    if (!year || !class_ || !data[fitnessTestChosen[0]]?.[year]?.[class_]) return null;
-    const participatedStudents = new Set<string>();
-    for (const record of data[fitnessTestChosen[0]][year][class_]) {
-      if (record.score !== null) participatedStudents.add(record.recordToEntity.entityId);
-    }
-    return participatedStudents.size;
+    const scoresGrades = testData.find(
+      (item) => item.name === fitnessTestChosen[0]
+    )?.mainUploadYearsAndClassesScoresGrades;
+    if (!scoresGrades || scoresGrades[year]?.[class_]?.[5] === undefined) return null;
+    return parseInt(scoresGrades[year][class_][5]);
   }, [data, fitnessTestChosen, yearClassChosen]);
 
   const totalPeople = useMemo<Record<string, [number, number]> | null>(() => {
@@ -33,17 +33,21 @@ function SingleClassTotalParticipationDonutCard() {
     if (!year || !class_) return null;
     const r: Record<string, [number, number]> = {};
     for (const fitnessTest of fitnessTestChosen) {
-      const participatedStudents = new Set<string>();
-      const allStudents = new Set<string>();
-      if (!data[fitnessTest]?.[year]?.[class_]) continue;
-      for (const record of data[fitnessTest][year][class_]) {
-        if (record.score !== null) participatedStudents.add(record.recordToEntity.entityId);
-        allStudents.add(record.recordToEntity.entityId);
-      }
-      r[fitnessTest] = [participatedStudents.size, allStudents.size - participatedStudents.size];
+      const allStudents = allSchools[year].find(([class2, total]) => class2 === class_)?.[1];
+      const scoresGrades = testData.find(
+        (item) => item.name === fitnessTest
+      )?.mainUploadYearsAndClassesScoresGrades;
+      if (
+        !scoresGrades ||
+        scoresGrades[year]?.[class_]?.[5] === undefined ||
+        allStudents === undefined
+      )
+        continue;
+      const totalParticipating = parseInt(scoresGrades[year][class_][5]);
+      r[fitnessTest] = [totalParticipating, allStudents - totalParticipating];
     }
     return r;
-  }, [data, fitnessTestChosen, yearClassChosen]);
+  }, [data, fitnessTestChosen, yearClassChosen, allSchools]);
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 xl:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">

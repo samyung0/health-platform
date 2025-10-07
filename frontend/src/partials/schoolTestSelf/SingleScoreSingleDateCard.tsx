@@ -1,9 +1,10 @@
+import { useStore } from "@nanostores/react";
 import { useMemo } from "react";
 import { cn } from "~/lib/utils";
 import {
   useAllSchoolTestRecordsByClassStore,
   useAllSchoolTestRecordsByMeStore,
-  useSchoolTestSelfFitnessTestChosen,
+  atomFitnessTestChosen,
 } from "~/states/schoolTestRecords";
 import { authClient } from "~/utils/betterAuthClient";
 
@@ -11,7 +12,7 @@ function SingleScoreSingleDateCard({ type }: { type: string }) {
   const { data: session } = authClient.useSession();
   const data = useAllSchoolTestRecordsByMeStore().data;
   const classData = useAllSchoolTestRecordsByClassStore().data;
-  const { fitnessTestChosen } = useSchoolTestSelfFitnessTestChosen();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const d = useMemo(() => {
     const r = {
       score: "--",

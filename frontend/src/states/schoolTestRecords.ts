@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
 import { atom } from "nanostores";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { getYearOrder } from "~/lib/utils";
 import { useQueryableSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
@@ -13,7 +13,7 @@ const $getSchoolTestRecords = recordRouterClient.api.records.schoolTest.$get;
 export const useAllSchoolTestRecords = () => {
   const { data: session } = authClient.useSession();
   return useQuery({
-    queryKey: ["allSchoolTestRecords", { type: "session" }],
+    queryKey: ["session", "allSchoolTestRecords"],
     queryFn: () =>
       recordRouterClient.api.records.schoolTest
         .$get({
@@ -47,8 +47,7 @@ export const useAllSchoolTestRecordsByYearStore = () => {
     data: r.data?.data.reduce((acc, record) => {
       const fitnessTestName = record.fitnessTestName;
       const year = record.recordToEntity.year;
-      const class_ = record.recordToEntity.class;
-      if (!fitnessTestName || !year || !class_) return acc;
+      if (!fitnessTestName || !year) return acc;
       if (!acc[fitnessTestName]) {
         acc[fitnessTestName] = {};
       }
@@ -106,43 +105,22 @@ export const useAllSchoolTestRecordsByMeStore = () => {
   };
 };
 
-export const useSchoolTestSelfFitnessTestChosen = () => {
+export const atomFitnessTestChosen = atom<string[]>([]);
+export const useSchoolTestFitnessTestAvailable = () => {
   const data = useSchoolTests().data?.data ?? [];
   const available = useMemo(() => data.map((item) => item.name), [data]);
-  const [fitnessTestChosen, setFitnessTestChosen] = useState<string[]>(() =>
-    available.length > 0 ? [available[0]] : []
-  );
   useEffect(() => {
-    if (available.length > 0 && fitnessTestChosen.length === 0) {
-      setFitnessTestChosen([available[0]]);
+    if (available.length > 0 && atomFitnessTestChosen.get().length === 0) {
+      atomFitnessTestChosen.set([available[0]]);
     }
   }, [available]);
   return {
     fitnessTestAvailable: available,
-    fitnessTestChosen,
-    setFitnessTestChosen,
   };
 };
 
-export const useSchoolTestClassFitnessTestChosen = () => {
-  const data = useSchoolTests().data?.data ?? [];
-  const available = useMemo(() => data.map((item) => item.name), [data]);
-  const [fitnessTestChosen, setFitnessTestChosen] = useState<string[]>(() =>
-    available.length > 0 ? [available[0]] : []
-  );
-  useEffect(() => {
-    if (available.length > 0 && fitnessTestChosen.length === 0) {
-      setFitnessTestChosen([available[0]]);
-    }
-  }, [available]);
-  return {
-    fitnessTestAvailable: available,
-    fitnessTestChosen,
-    setFitnessTestChosen,
-  };
-};
-
-export const useSchoolTestClassClassChosen = () => {
+export const atomClassChosen = atom<string | null>(null);
+export const useSchoolTestClassAvailable = () => {
   const queryableYearsAndClasses = useQueryableSchoolData().data?.data ?? {};
   const available = useMemo(
     () =>
@@ -160,41 +138,18 @@ export const useSchoolTestClassClassChosen = () => {
         .flat(),
     [queryableYearsAndClasses]
   );
-  const [classChosen, setClassChosen] = useState<string | null>(() =>
-    available.length > 0 ? available[0] : null
-  );
   useEffect(() => {
-    if (available.length > 0 && classChosen === null) {
-      setClassChosen(available[0]);
+    if (available.length > 0 && atomClassChosen.get() === null) {
+      atomClassChosen.set(available[0]);
     }
   }, [available]);
   return {
     classAvailable: available,
-    classChosen,
-    setClassChosen,
-  };
-};
-
-export const useSchoolTestYearFitnessTestChosen = () => {
-  const data = useSchoolTests().data?.data ?? [];
-  const available = useMemo(() => data.map((item) => item.name), [data]);
-  const [fitnessTestChosen, setFitnessTestChosen] = useState<string[]>(() =>
-    available.length > 0 ? [available[0]] : []
-  );
-  useEffect(() => {
-    if (available.length > 0 && fitnessTestChosen.length === 0) {
-      setFitnessTestChosen([available[0]]);
-    }
-  }, [available]);
-  return {
-    fitnessTestAvailable: available,
-    fitnessTestChosen,
-    setFitnessTestChosen,
   };
 };
 
 export const atomYearChosen = atom<string | null>(null);
-export const useSchoolTestClassYearChosen = () => {
+export const useSchoolTestYearAvailable = () => {
   const queryableYearsAndClasses = useQueryableSchoolData().data?.data ?? {};
   const available = useMemo(
     () =>
@@ -208,19 +163,5 @@ export const useSchoolTestClassYearChosen = () => {
   }, [available]);
   return {
     yearAvailable: available,
-  };
-};
-
-export const atomSchoolTestSchoolFitnessTestChosen = atom<string[]>([]);
-export const useSchoolTestSchoolFitnessTestChosen = () => {
-  const data = useSchoolTests().data?.data ?? [];
-  const available = useMemo(() => data.map((item) => item.name), [data]);
-  useEffect(() => {
-    if (available.length > 0 && atomSchoolTestSchoolFitnessTestChosen.get().length === 0) {
-      atomSchoolTestSchoolFitnessTestChosen.set([available[0]]);
-    }
-  }, [available]);
-  return {
-    fitnessTestAvailable: available,
   };
 };

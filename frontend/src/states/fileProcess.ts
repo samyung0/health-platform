@@ -5,7 +5,7 @@ import { fileRouterClient } from "~/utils/routerClient";
 export const useFileProcesses = () => {
   const { data: session } = authClient.useSession();
   return useQuery({
-    queryKey: ["fileProcesses", { type: "session" }],
+    queryKey: ["session", "fileProcesses"],
     queryFn: () => fileRouterClient.api.files.myFileProcess.$get().then((res) => res.json()),
     refetchInterval: 1000 * 30,
     enabled: !!session,

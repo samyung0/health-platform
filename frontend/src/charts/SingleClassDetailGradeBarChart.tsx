@@ -70,7 +70,7 @@ function SingleClassDetailGradeBarChart({
   height?: number;
   dataFetched: { label: string; date: Date; data: number[] }[];
   type: string;
-  totalStudents: number;
+  totalStudents: Record<string, number>;
 }) {
   const [chart, setChart] = useState<Chart | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -104,9 +104,10 @@ function SingleClassDetailGradeBarChart({
       datasets: dataFetched
         // largest to smallest timescale
         .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .filter((item) => totalStudents[item.label] !== undefined)
         .map((item, index) => ({
           label: item.label,
-          data: item.data.map((data) => Math.round((data / totalStudents) * 100)),
+          data: item.data.map((data) => Math.round((data / totalStudents[item.label]) * 100)),
           backgroundColor: darkMode ? gradingColorsDark : gradingColors,
           hoverBackgroundColor: darkMode ? gradingHoverColorsDark : gradingHoverColors,
           borderColor: adjustColorOpacity(borderColors[index], 1),

@@ -3,13 +3,12 @@ import SingleYearDetailScoreBarChart from "~/charts/SingleYearDetailScoreBarChar
 
 import { useMemo } from "react";
 import { cn, findGradeFrontend } from "~/lib/utils";
-import { useAllSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
 import {
   atomYearChosen,
   useAllSchoolTestRecordsByYearStore,
-  useSchoolTestClassFitnessTestChosen,
-  useSchoolTestClassYearChosen,
+  atomFitnessTestChosen,
+  useAllSchoolTestRecordsByClassStore,
 } from "~/states/schoolTestRecords";
 import { useStore } from "@nanostores/react";
 
@@ -42,46 +41,54 @@ import { useStore } from "@nanostores/react";
 
 function SingleClassDetailGradeBarCard({ type }: { type: string }) {
   const data = useAllSchoolTestRecordsByYearStore().data;
+  const classData = useAllSchoolTestRecordsByClassStore().data;
   const testData = useSchoolTests().data?.data ?? [];
-  const allSchools = useAllSchoolData().data?.data ?? {};
-  const { fitnessTestChosen } = useSchoolTestClassFitnessTestChosen();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const yearChosen = useStore(atomYearChosen);
-  console.log(yearChosen);
 
   const classes = useMemo(() => {
-    if (!yearChosen || !allSchools) return [];
-    const year = yearChosen;
-    return allSchools[year].map(([class_]) => class_);
-  }, [yearChosen, allSchools]);
-
-  const totalStudents = useMemo(() => {
-    if (!yearChosen || !allSchools) return {};
-    const year = yearChosen;
-    return Object.fromEntries(allSchools[year]);
-  }, [yearChosen, allSchools]);
+    if (!yearChosen || !classData || fitnessTestChosen.length === 0) return [];
+    const allClasses = new Set<string>();
+    for (const test of fitnessTestChosen) {
+      if (!classData[test]?.[yearChosen]) continue;
+      const t = Object.keys(classData[test][yearChosen]);
+      for (const class_ of t) {
+        allClasses.add(class_);
+      }
+    }
+    return Array.from(allClasses).toSorted((a, b) => {
+      const numA = parseInt(a.split("班")[0]);
+      const numB = parseInt(b.split("班")[0]);
+      return numA - numB;
+    });
+  }, [yearChosen, classData, fitnessTestChosen]);
 
   const d = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearChosen || !allSchools) return null;
-    const year = yearChosen;
+    if (!data || !testData || fitnessTestChosen.length === 0 || !yearChosen) return null;
     let sum = 0;
     let passing = 0;
-    const people = allSchools[year].reduce((acc, curr) => acc + curr[1], 0);
+    let totalPeople = 0;
     let bestStudent = {
       score: 0,
       grade: "--",
       student: "--",
     };
-    if (!data[fitnessTestChosen[0]]?.[year]) return null;
-    for (const record of data[fitnessTestChosen[0]][year]) {
+    const scoresGrades = testData.find(
+      (item) => item.name === fitnessTestChosen[0]
+    )?.mainUploadYearsAndClassesScoresGrades;
+    if (!scoresGrades || scoresGrades[yearChosen] === undefined) return null;
+    for (const class_ in scoresGrades[yearChosen]) {
+      totalPeople += parseInt(scoresGrades[yearChosen][class_][5]);
+    }
+    for (const record of data[fitnessTestChosen[0]][yearChosen]) {
       if (record.recordType === type && record.normalizedScore !== null) {
+        sum += record.normalizedScore;
         if (type === "体重指数（BMI）") {
-          sum += record.normalizedScore;
           if (record.grade !== "肥胖") {
             passing++;
           }
         } else {
-          sum += record.normalizedScore;
-          if (sum >= 60) {
+          if (record.grade !== "不及格") {
             passing++;
           }
         }
@@ -95,39 +102,45 @@ function SingleClassDetailGradeBarCard({ type }: { type: string }) {
       }
     }
     return {
-      classScore: sum / people,
-      grade: findGradeFrontend(sum / people),
-      classPassRate: (passing / people) * 100,
+      classScore: (sum / totalPeople).toFixed(1),
+      grade: findGradeFrontend(sum / totalPeople),
+      classPassRate: ((passing / totalPeople) * 100).toFixed(1),
       bestStudent: bestStudent,
     };
-  }, [data, fitnessTestChosen, yearChosen]);
+  }, [data, fitnessTestChosen, yearChosen, testData]);
 
-  const dataSet = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearChosen) return null;
-    const year = yearChosen;
+  const [dataSet, totalStudents] = useMemo(() => {
+    if (!data || !testData || fitnessTestChosen.length === 0 || !yearChosen || classes.length === 0)
+      return [[], {}];
     const res: { label: string; date: Date; data: number[]; grade: string }[] = [];
-    const classes = allSchools[year].map(([class_]) => class_);
+    const totalStudents: Record<string, Record<string, number>> = {};
     for (const test of fitnessTestChosen) {
+      if (!totalStudents[test]) totalStudents[test] = {};
       let gradeExcellent: Record<string, number> = {};
       let gradeGood: Record<string, number> = {};
       let gradeAverage: Record<string, number> = {};
       let gradeFailed: Record<string, number> = {};
-      if (!data[test]?.[year]) continue;
-      for (const record of data[test][year]) {
+      if (!data[test]?.[yearChosen]) continue;
+      for (const record of data[test][yearChosen]) {
         if (!record.recordToEntity.class) continue;
-        if (!gradeExcellent[record.recordToEntity.class]) {
+        if (!totalStudents[test][record.recordToEntity.class]) {
+          totalStudents[test][record.recordToEntity.class] = 0;
+        }
+        if (!gradeExcellent.hasOwnProperty(record.recordToEntity.class)) {
           gradeExcellent[record.recordToEntity.class] = 0;
         }
-        if (!gradeGood[record.recordToEntity.class]) {
+        if (!gradeGood.hasOwnProperty(record.recordToEntity.class)) {
           gradeGood[record.recordToEntity.class] = 0;
         }
-        if (!gradeAverage[record.recordToEntity.class]) {
+        if (!gradeAverage.hasOwnProperty(record.recordToEntity.class)) {
           gradeAverage[record.recordToEntity.class] = 0;
         }
-        if (!gradeFailed[record.recordToEntity.class]) {
+        if (!gradeFailed.hasOwnProperty(record.recordToEntity.class)) {
           gradeFailed[record.recordToEntity.class] = 0;
         }
+
         if (record.recordType === type && record.grade !== null) {
+          totalStudents[test][record.recordToEntity.class] += 1;
           if (type === "体重指数（BMI）") {
             gradeExcellent[record.recordToEntity.class] += record.grade === "正常" ? 1 : 0;
             gradeGood[record.recordToEntity.class] += record.grade === "低体重" ? 1 : 0;
@@ -141,7 +154,6 @@ function SingleClassDetailGradeBarCard({ type }: { type: string }) {
           }
         }
       }
-
       const da = new Date(testData.find((item) => item.id === test)?.fitnessTestDate ?? new Date());
       res.push({
         label: test,
@@ -168,24 +180,23 @@ function SingleClassDetailGradeBarCard({ type }: { type: string }) {
         grade: type === "体重指数（BMI）" ? "肥胖" : "不及格",
       });
     }
-    return res;
-  }, [data, fitnessTestChosen, yearChosen, testData]);
+    return [res, totalStudents];
+  }, [data, fitnessTestChosen, yearChosen, testData, classes]);
 
   const dataSet2 = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearChosen) return null;
-    const year = yearChosen;
+    if (!data || fitnessTestChosen.length === 0 || !yearChosen || !testData || classes.length === 0)
+      return null;
     const res: { label: string; date: Date; data: number[] }[] = [];
-    const classes = allSchools[year].map(([class_]) => class_);
     for (const test of fitnessTestChosen) {
       let scores: Record<string, [number, number]> = {};
-      if (!data[test]?.[year]) continue;
-      for (const record of data[test][year]) {
+      if (!data[test]?.[yearChosen]) continue;
+      for (const record of data[test][yearChosen]) {
         if (!record.recordToEntity.class) continue;
         if (!scores[record.recordToEntity.class]) {
           scores[record.recordToEntity.class] = [0, 0];
         }
-        if (record.recordType === type && record.grade !== null) {
-          scores[record.recordToEntity.class][0] += record.normalizedScore ?? 0;
+        if (record.recordType === type && record.normalizedScore !== null) {
+          scores[record.recordToEntity.class][0] += record.normalizedScore;
           scores[record.recordToEntity.class][1] += 1;
         }
       }
@@ -195,21 +206,17 @@ function SingleClassDetailGradeBarCard({ type }: { type: string }) {
         label: test,
         date: da,
         data: classes.map((class_) =>
-          scores[class_] ? scores[class_]?.[0] / scores[class_]?.[1] : 0
+          scores[class_] ? Number((scores[class_]?.[0] / scores[class_]?.[1]).toFixed(1)) : 0
         ),
       });
     }
     return res;
-  }, [data, fitnessTestChosen, yearChosen, testData]);
-
-  console.log(dataSet, dataSet2, data, fitnessTestChosen, yearChosen, testData);
+  }, [data, fitnessTestChosen, yearChosen, testData, classes]);
 
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 xl:col-span-full bg-white dark:bg-gray-800 shadow-xs rounded-xl justify-between">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex xl:items-center xl:justify-between justify-start items-stretch xl:flex-row flex-col flex-wrap gap-y-2 ">
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap">
-          一分钟俯卧撑
-        </h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap">{type}</h2>
         <div className="flex justify-between items-center pt-3 xl:pt-0">
           {/* <div className="flex whitespace-nowrap -space-x-px">
             <button
@@ -253,44 +260,48 @@ function SingleClassDetailGradeBarCard({ type }: { type: string }) {
           <div className="flex items-start justify-start flex-col max-sm:*:w-1/2 pl-8 py-4 lg:py-6 gap-4">
             <div className="text-xl lg:text-2xl font-bold text-gray-800 dark:text-gray-100">
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                2025年上学期
+                {fitnessTestChosen[0]}
               </div>
               <span className="-ml-0.5">合格率 {d?.classPassRate ?? "--"}%</span>
             </div>
-            <div>
-              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                最高分
-              </div>
-              <div className="text-xs -mb-0.5 font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                三年のA班
-              </div>
-              <div className="flex items-start">
-                <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                  {d?.bestStudent.student} {d?.bestStudent.score}
+            {type !== "体重指数（BMI）" && (
+              <div>
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                  最高分
                 </div>
-                <div
-                  className={cn(
-                    "text-sm font-medium px-1.5 rounded-full",
-                    d?.bestStudent.grade === "优秀"
-                      ? "text-purple-700 bg-purple-500/20"
-                      : d?.bestStudent.grade === "良好"
-                      ? "text-green-700 bg-green-500/20"
-                      : d?.bestStudent.grade === "及格"
-                      ? "text-yellow-700 bg-yellow-500/20"
-                      : "text-red-700 bg-red-500/20"
-                  )}
-                >
-                  {d?.bestStudent.grade}
+                <div className="text-xs -mb-0.5 font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                  三年のA班
+                </div>
+                <div className="flex items-start">
+                  <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
+                    {d?.bestStudent.student} {d?.bestStudent.score}
+                  </div>
+                  <div
+                    className={cn(
+                      "text-sm font-medium px-1.5 rounded-full",
+                      d?.bestStudent.grade === "优秀"
+                        ? "text-purple-700 bg-purple-500/20"
+                        : d?.bestStudent.grade === "良好" || d?.bestStudent.grade === "正常"
+                        ? "text-green-700 bg-green-500/20"
+                        : d?.bestStudent.grade === "及格" ||
+                          d?.bestStudent.grade === "低体重" ||
+                          d?.bestStudent.grade === "超重"
+                        ? "text-yellow-700 bg-yellow-500/20"
+                        : "text-red-700 bg-red-500/20"
+                    )}
+                  >
+                    {d?.bestStudent.grade}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <div>
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
                 年平均分
               </div>
               <div className="flex items-start">
                 <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                  {d?.classScore.toFixed(1) ?? "--"}
+                  {d?.classScore ?? "--"}
                 </div>
                 <div
                   className={cn(
@@ -310,11 +321,8 @@ function SingleClassDetailGradeBarCard({ type }: { type: string }) {
             </div>
           </div>
         </div>
-        <div className="col-span-full xl:col-span-5">
-          {dataSet2 &&
-          dataSet2.length &&
-          classes.length > 0 &&
-          Object.keys(totalStudents).length > 0 ? (
+        <div className="col-span-full">
+          {dataSet2 && dataSet2.length && classes.length > 0 ? (
             <SingleYearDetailScoreBarChart height={250} dataFetched={dataSet2} classes={classes} />
           ) : (
             <div className="flex flex-col justify-center items-center h-[200px]">
@@ -322,7 +330,7 @@ function SingleClassDetailGradeBarCard({ type }: { type: string }) {
             </div>
           )}
         </div>
-        <div className="col-span-full xl:col-span-5">
+        <div className="col-span-full">
           {dataSet &&
           dataSet.length &&
           classes.length > 0 &&

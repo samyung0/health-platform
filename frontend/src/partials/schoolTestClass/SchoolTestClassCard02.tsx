@@ -1,46 +1,49 @@
 import SingleClassTotalGradeDonutChart from "~/charts/SingleClassTotalGradeDonutChart";
 import {
   useAllSchoolTestRecordsByClassStore,
-  useSchoolTestClassFitnessTestChosen,
-  useSchoolTestClassClassChosen,
+  atomFitnessTestChosen,
+  atomClassChosen,
 } from "~/states/schoolTestRecords";
 import { useAllSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
 import { useMemo } from "react";
+import { useStore } from "@nanostores/react";
 
 function SingleClassTotalGradeDonutCard() {
   const data = useAllSchoolTestRecordsByClassStore().data;
   const testData = useSchoolTests().data?.data ?? [];
   const allSchools = useAllSchoolData().data?.data ?? {};
-  const { fitnessTestChosen } = useSchoolTestClassFitnessTestChosen();
-  const { classChosen: yearClassChosen } = useSchoolTestClassClassChosen();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const yearClassChosen = useStore(atomClassChosen);
   const passingRate = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
+    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen) return null;
     const year = yearClassChosen.slice(0, 3);
     const class_ = yearClassChosen.slice(3);
     const scoresGrades = testData.find(
       (item) => item.name === fitnessTestChosen[0]
     )?.mainUploadYearsAndClassesScoresGrades;
-    if (!scoresGrades || !scoresGrades[year]?.[class_]) return null;
-    return scoresGrades[year][class_][2];
+    if (!scoresGrades || scoresGrades[year]?.[class_] === undefined) return null;
+    return Number(scoresGrades[year][class_][2]) * 100;
   }, [data, fitnessTestChosen, yearClassChosen]);
   const dataSet = useMemo(() => {
     if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
     const year = yearClassChosen.slice(0, 3);
     const class_ = yearClassChosen.slice(3);
-    const classTotalPeople = allSchools[year].find(([class_, total]) => class_ === class_)?.[1];
-    if (!classTotalPeople) return [];
     return fitnessTestChosen
       .map((test) => {
         const tt = testData.find((item) => item.name === test)!;
-        if (!tt.mainUploadYearsAndClassesScoresGrades[year]?.[class_]?.[2]) return null;
-        const passingRate = parseFloat(tt.mainUploadYearsAndClassesScoresGrades[year][class_][2]);
+        const scoresGrades = testData.find(
+          (item) => item.name === test
+        )?.mainUploadYearsAndClassesScoresGrades;
+        if (!tt || !scoresGrades || scoresGrades[year]?.[class_] === undefined) return null;
+        const participatedStudents = parseInt(scoresGrades[year][class_][5]);
+        const passingRate = parseFloat(scoresGrades[year][class_][2]);
         return {
           label: test,
           date: new Date(tt.fitnessTestDate ?? new Date()),
           data: [
-            Math.round(passingRate * classTotalPeople),
-            classTotalPeople - Math.round(passingRate * classTotalPeople),
+            Math.round(passingRate * participatedStudents),
+            participatedStudents - Math.round(passingRate * participatedStudents),
           ] as [number, number],
         };
       })

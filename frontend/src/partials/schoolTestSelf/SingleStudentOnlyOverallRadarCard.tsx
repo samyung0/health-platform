@@ -1,16 +1,17 @@
+import { useStore } from "@nanostores/react";
 import { useMemo } from "react";
 import SingleStudentOnlyOverallRadarChart from "~/charts/SingleStudentOnlyOverallRadarChart";
 import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
 import { useSchoolTests } from "~/states/schoolTest";
 import {
   useAllSchoolTestRecordsByMeStore,
-  useSchoolTestSelfFitnessTestChosen,
+  atomFitnessTestChosen,
 } from "~/states/schoolTestRecords";
 
 function SingleStudentOnlyOverallRadarCard() {
   const data = useAllSchoolTestRecordsByMeStore().data;
   const testData = useSchoolTests().data;
-  const { fitnessTestChosen } = useSchoolTestSelfFitnessTestChosen();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const mapped = useMemo(() => {
     if (!data || !testData?.data) return [];
     const r: { label: string; date: Date; data: (number | null)[] }[] = [];
@@ -23,12 +24,13 @@ function SingleStudentOnlyOverallRadarCard() {
           testData.data.find((item) => item.id === key)?.fitnessTestDate ?? new Date()
         ),
         data: FRONTEND_EXERCISE_TYPES.map(
-          (type) => item.find((item) => item.recordType === type)?.normalizedScore ?? null
+          (type) => item.find((item) => item.recordType === type)?.normalizedScore ?? 0
         ),
       });
     }
     return r;
   }, [data, fitnessTestChosen]);
+  console.log(mapped);
   return (
     <div className="flex flex-col col-span-full sm:col-span-12 xl:col-span-6 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">

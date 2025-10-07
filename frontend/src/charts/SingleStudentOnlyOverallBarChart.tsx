@@ -223,7 +223,7 @@ function SingleStudentOnlyOverallBarChart({
       options: {
         layout: {
           padding: {
-            top: 12,
+            top: 26,
             bottom: 16,
             left: 20,
             right: 56,

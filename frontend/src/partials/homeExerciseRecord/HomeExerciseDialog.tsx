@@ -286,6 +286,7 @@ export default function HomeExerciseDialog({
                       try {
                         setSubmitting(true);
                         setSubmitError(undefined);
+                        console.log(request);
                         const response = await recordRouterClient.api.records.homeExercise.$post({
                           json: {
                             recordType: request.recordType,

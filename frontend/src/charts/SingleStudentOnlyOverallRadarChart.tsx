@@ -117,6 +117,7 @@ function SingleStudentOnlyOverallRadarChart({
             color: darkMode ? textColor.dark : textColor.light,
             backdropColor: darkMode ? backdropColor.dark : backdropColor.light,
           },
+          backgroundColor: darkMode ? backdropColor.dark : backdropColor.light,
           suggestedMin: 0,
           suggestedMax: 100,
           pointLabels: {

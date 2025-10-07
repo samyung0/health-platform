@@ -19,6 +19,10 @@ import { chartColors } from "./ChartjsConfig";
 
 // Import utilities
 import {
+  GRADING_BMI_COLORS,
+  GRADING_BMI_COLORS_DARK,
+  GRADING_BMI_COLORS_HOVER,
+  GRADING_BMI_COLORS_HOVER_DARK,
   GRADING_COLORS,
   GRADING_COLORS_DARK,
   GRADING_SCALE_BMI_KEYS,
@@ -30,68 +34,68 @@ import { adjustColorOpacity, getChartBorderColor, getChartColor } from "../utils
 Chart.register(BarController, BarElement, LinearScale, TimeScale, Title, Tooltip, Legend);
 
 // TODO: add data, follow worst to best order, note its total count, % is calculated
-const dataFetched: {
-  label: string;
-  date: Date;
-  data: number[];
-  grade: (typeof GRADING_SCALE_KEYS)[number];
-}[] = [
-  {
-    label: "2025年上学期",
-    date: new Date(2025, 2, 15),
-    data: [6, 6, 6, 6],
-    grade: "优秀",
-  },
-  {
-    label: "2025年上学期",
-    date: new Date(2025, 2, 15),
-    data: [6, 6, 6, 6],
-    grade: "良好",
-  },
-  {
-    label: "2025年上学期",
-    date: new Date(2025, 2, 15),
-    data: [2, 6, 6, 6],
-    grade: "及格",
-  },
-  {
-    label: "2025年上学期",
-    date: new Date(2025, 2, 15),
-    data: [10, 6, 6, 6],
-    grade: "不及格",
-  },
-  {
-    label: "2024年下学期",
-    date: new Date(2024, 8, 15),
-    data: [6, 6, 6, 6],
-    grade: "优秀",
-  },
-  {
-    label: "2024年下学期",
-    date: new Date(2024, 8, 15),
-    data: [6, 6, 6, 6],
-    grade: "良好",
-  },
-  {
-    label: "2024年下学期",
-    date: new Date(2024, 8, 15),
-    data: [6, 6, 6, 6],
-    grade: "及格",
-  },
-  {
-    label: "2024年下学期",
-    date: new Date(2024, 8, 15),
-    data: [6, 6, 6, 6],
-    grade: "不及格",
-  },
-];
-const classes = ["1A", "1B", "1C", "1D"];
-const totalStudents = {
-  "1A": 24,
-  "1B": 24,
-  "1C": 24,
-  "1D": 24,
-} as Record<string, number>;
+// const dataFetched: {
+//   label: string;
+//   date: Date;
+//   data: number[];
+//   grade: (typeof GRADING_SCALE_KEYS)[number];
+// }[] = [
+//   {
+//     label: "2025年上学期",
+//     date: new Date(2025, 2, 15),
+//     data: [6, 6, 6, 6],
+//     grade: "优秀",
+//   },
+//   {
+//     label: "2025年上学期",
+//     date: new Date(2025, 2, 15),
+//     data: [6, 6, 6, 6],
+//     grade: "良好",
+//   },
+//   {
+//     label: "2025年上学期",
+//     date: new Date(2025, 2, 15),
+//     data: [2, 6, 6, 6],
+//     grade: "及格",
+//   },
+//   {
+//     label: "2025年上学期",
+//     date: new Date(2025, 2, 15),
+//     data: [10, 6, 6, 6],
+//     grade: "不及格",
+//   },
+//   {
+//     label: "2024年下学期",
+//     date: new Date(2024, 8, 15),
+//     data: [6, 6, 6, 6],
+//     grade: "优秀",
+//   },
+//   {
+//     label: "2024年下学期",
+//     date: new Date(2024, 8, 15),
+//     data: [6, 6, 6, 6],
+//     grade: "良好",
+//   },
+//   {
+//     label: "2024年下学期",
+//     date: new Date(2024, 8, 15),
+//     data: [6, 6, 6, 6],
+//     grade: "及格",
+//   },
+//   {
+//     label: "2024年下学期",
+//     date: new Date(2024, 8, 15),
+//     data: [6, 6, 6, 6],
+//     grade: "不及格",
+//   },
+// ];
+// const classes = ["1A", "1B", "1C", "1D"];
+// const totalStudents = {
+//   "1A": 24,
+//   "1B": 24,
+//   "1C": 24,
+//   "1D": 24,
+// } as Record<string, number>;
 
 // this is not dynamic
 const gradingColors = GRADING_SCALE_KEYS.map((key) =>
@@ -105,6 +109,18 @@ const gradingColorsDark = GRADING_SCALE_KEYS.map((key) =>
 );
 const gradingHoverColorsDark = GRADING_SCALE_KEYS.map((key) =>
   adjustColorOpacity(GRADING_COLORS_DARK[key], 1)
+);
+const gradingColorsBMI = GRADING_SCALE_BMI_KEYS.map((key) =>
+  adjustColorOpacity(GRADING_BMI_COLORS[key], 0.85)
+);
+const gradingHoverColorsBMI = GRADING_SCALE_BMI_KEYS.map((key) =>
+  adjustColorOpacity(GRADING_BMI_COLORS_HOVER[key], 1)
+);
+const gradingColorsDarkBMI = GRADING_SCALE_BMI_KEYS.map((key) =>
+  adjustColorOpacity(GRADING_BMI_COLORS_DARK[key], 0.85)
+);
+const gradingHoverColorsDarkBMI = GRADING_SCALE_BMI_KEYS.map((key) =>
+  adjustColorOpacity(GRADING_BMI_COLORS_HOVER_DARK[key], 1)
 );
 function SingleYearDetailGradeStackedBarChart({
   height,
@@ -121,7 +137,7 @@ function SingleYearDetailGradeStackedBarChart({
     grade: string;
   }[];
   classes: string[];
-  totalStudents: Record<string, number>;
+  totalStudents: Record<string, Record<string, number>>;
   type: string;
 }) {
   const [chart, setChart] = useState<Chart | null>(null);
@@ -156,7 +172,7 @@ function SingleYearDetailGradeStackedBarChart({
       labels: classes,
       datasets: dataFetched
         // largest to smallest timescale
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        // .sort((a, b) => b.date.getTime() - a.date.getTime())
         .map((item) => {
           const gradeIndex =
             type === "体重指数（BMI）"
@@ -168,31 +184,48 @@ function SingleYearDetailGradeStackedBarChart({
           return {
             label: item.label,
             stack: item.label,
-            data: item.data.map((data) =>
-              Math.round((data / totalStudents[classes[labelIndex]]) * 100)
+            data: item.data.map((data, index) =>
+              totalStudents[item.label]?.[classes[index]]
+                ? Math.round((data / totalStudents[item.label][classes[index]]) * 100)
+                : 0
             ),
-            backgroundColor: adjustColorOpacity(
-              darkMode ? gradingColorsDark[gradeIndex] : gradingColors[gradeIndex],
-              0.8
-            ),
-            hoverBackgroundColor: adjustColorOpacity(
-              darkMode ? gradingHoverColorsDark[gradeIndex] : gradingHoverColors[gradeIndex],
-              0.8
-            ),
+            backgroundColor:
+              type === "体重指数（BMI）"
+                ? adjustColorOpacity(
+                    darkMode ? gradingColorsDarkBMI[gradeIndex] : gradingColorsBMI[gradeIndex],
+                    0.8
+                  )
+                : adjustColorOpacity(
+                    darkMode ? gradingColorsDark[gradeIndex] : gradingColors[gradeIndex],
+                    0.8
+                  ),
+            hoverBackgroundColor:
+              type === "体重指数（BMI）"
+                ? adjustColorOpacity(
+                    darkMode
+                      ? gradingHoverColorsDarkBMI[gradeIndex]
+                      : gradingHoverColorsBMI[gradeIndex],
+                    0.8
+                  )
+                : adjustColorOpacity(
+                    darkMode ? gradingHoverColorsDark[gradeIndex] : gradingHoverColors[gradeIndex],
+                    0.8
+                  ),
             borderColor: adjustColorOpacity(borderColors[labelIndex], 1),
             hoverBorderColor: adjustColorOpacity(borderHoverColors[labelIndex], 1),
             pointRadius: 0,
             borderRadius: 0,
             // borderSkipped: false,
-            borderWidth: uniqueLabels.length === 1 ? 0 : darkMode ? 4 : 3,
+            borderWidth: uniqueLabels.length === 1 ? 0 : darkMode ? 4 : 4,
             categoryPercentage: 0.8,
             barPercentage: uniqueLabels.length === 1 ? 0.6 : 0.8,
             datalabels: {
               align: "end",
               anchor: "end",
             },
-          };
-        }),
+          } as const;
+        })
+        .filter((item) => item !== null),
     }),
     [dataFetched, darkMode, uniqueLabels]
   );
@@ -218,6 +251,7 @@ function SingleYearDetailGradeStackedBarChart({
           },
           suggestedMin: 0,
           suggestedMax: 100,
+          max: 100,
           stacked: true,
         },
         x: {
@@ -440,23 +474,41 @@ function SingleYearDetailGradeStackedBarChart({
             <div className="text-xs text-gray-500 font-medium dark:text-gray-400 flex items-center">
               总计
             </div>
-            {GRADING_SCALE_KEYS.map((key, index) => (
-              <div key={key} className="flex flex-col items-left">
-                <div className="text-xs text-gray-500 font-medium dark:text-gray-400 flex items-center">
-                  <div
-                    className="w-2 h-2 rounded-sm mr-2 pointer-events-none"
-                    style={{ backgroundColor: GRADING_COLORS[key] }}
-                  ></div>
-                  <div className="pr-2">
-                    {key}{" "}
-                    {dataFetched
-                      .find((item) => item.grade === key)
-                      ?.data.reduce((acc, item) => acc + item, 0)}
-                    人
+            {type === "体重指数（BMI）"
+              ? GRADING_SCALE_BMI_KEYS.map((key, index) => (
+                  <div key={key} className="flex flex-col items-left">
+                    <div className="text-xs text-gray-500 font-medium dark:text-gray-400 flex items-center">
+                      <div
+                        className="w-2 h-2 rounded-sm mr-2 pointer-events-none"
+                        style={{ backgroundColor: GRADING_BMI_COLORS[key] }}
+                      ></div>
+                      <div className="pr-2">
+                        {key}{" "}
+                        {dataFetched
+                          .find((item) => item.grade === key)
+                          ?.data.reduce((acc, item) => acc + item, 0)}
+                        人
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                ))
+              : GRADING_SCALE_KEYS.map((key, index) => (
+                  <div key={key} className="flex flex-col items-left">
+                    <div className="text-xs text-gray-500 font-medium dark:text-gray-400 flex items-center">
+                      <div
+                        className="w-2 h-2 rounded-sm mr-2 pointer-events-none"
+                        style={{ backgroundColor: GRADING_COLORS[key] }}
+                      ></div>
+                      <div className="pr-2">
+                        {key}{" "}
+                        {dataFetched
+                          .find((item) => item.grade === key)
+                          ?.data.reduce((acc, item) => acc + item, 0)}{" "}
+                        人
+                      </div>
+                    </div>
+                  </div>
+                ))}
           </div>
         )}
         {uniqueLabels.length > 1 && (

@@ -13,8 +13,9 @@ import { useMemo } from "react";
 import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
 import {
   atomYearChosen,
-  useSchoolTestClassFitnessTestChosen,
-  useSchoolTestClassYearChosen,
+  atomFitnessTestChosen,
+  useSchoolTestFitnessTestAvailable,
+  useSchoolTestYearAvailable,
 } from "~/states/schoolTestRecords";
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
@@ -54,9 +55,9 @@ import { useStore } from "@nanostores/react";
 function Dashboard() {
   const { data: session } = authClient.useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { fitnessTestAvailable, fitnessTestChosen, setFitnessTestChosen } =
-    useSchoolTestClassFitnessTestChosen();
-  const { yearAvailable } = useSchoolTestClassYearChosen();
+  const { fitnessTestAvailable } = useSchoolTestFitnessTestAvailable();
+  const { yearAvailable } = useSchoolTestYearAvailable();
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const yearChosen = useStore(atomYearChosen);
 
   const [colors] = useMemo(
@@ -64,7 +65,7 @@ function Dashboard() {
     [fitnessTestAvailable.length]
   );
 
-  if (!session) return <div>Loading...</div>;
+  if (!session) return <div>加载中 ...</div>;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -96,7 +97,7 @@ function Dashboard() {
                       <button
                         className="btn-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-500 dark:text-gray-400 hover:[&>div:last-child]:opacity-100"
                         onClick={() =>
-                          setFitnessTestChosen(
+                          atomFitnessTestChosen.set(
                             fitnessTestChosen.filter((name) => name !== fitnessTestName)
                           )
                         }
@@ -132,7 +133,6 @@ function Dashboard() {
                       name: year,
                     }))}
                     onSelectChange={(selected) => {
-                      console.log("selected", selected);
                       atomYearChosen.set(selected);
                     }}
                     defaultLabel="选择班级"
@@ -146,7 +146,7 @@ function Dashboard() {
                       name: fitnessTest,
                     }))}
                     onSelectChange={(selected) => {
-                      setFitnessTestChosen(selected);
+                      atomFitnessTestChosen.set(selected);
                     }}
                     label="体测对比"
                     defaultSelected={fitnessTestChosen ?? undefined}
@@ -160,9 +160,11 @@ function Dashboard() {
               <SingleYearTotalParticipationCard />
               <SingleYearTotalGradeCard />
               <SingleYearTotalScoreCard />
-              {FRONTEND_EXERCISE_TYPES.map((type) => (
-                <SingleYearDetailGradeDonutCard key={type} type={type} />
-              ))}
+              {FRONTEND_EXERCISE_TYPES.map((type) => {
+                if (type === "50米×8往返跑" && yearChosen !== "五年级" && yearChosen !== "六年级")
+                  return null;
+                return <SingleYearDetailGradeDonutCard key={type} type={type} />;
+              })}
             </div>
           </div>
         </main>
