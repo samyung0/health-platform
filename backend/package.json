@@ -9,11 +9,12 @@
     "db:generate": "drizzle-kit generate --config drizzle.dev.config.ts",
     "db:migrate": "drizzle-kit migrate --config drizzle.dev.config.ts",
     "db:drop": "drizzle-kit drop --config drizzle.dev.config.ts",
-    "db:generate:prod": "drizzle-kit generate --config drizzle.prod.config.ts",
-    "db:migrate:prod": "drizzle-kit migrate --config drizzle.prod.config.ts",
-    "db:drop:prod": "drizzle-kit drop --config drizzle.prod.config.ts",
+    "db:generate:prod": "NODE_ENV=production drizzle-kit generate --config drizzle.prod.config.ts",
+    "db:migrate:prod": "NODE_ENV=production drizzle-kit migrate --config drizzle.prod.config.ts",
+    "db:drop:prod": "NODE_ENV=production drizzle-kit drop --config drizzle.prod.config.ts",
     "db:dropdata": "NODE_ENV=development bun run src/scripts/drop.ts",
-    "db:seed:admin": "NODE_ENV=development bun run src/scripts/seedAdmin.ts"
+    "db:seed:admin": "NODE_ENV=development bun run src/scripts/seedAdmin.ts",
+    "db:seed:admin:prod": "NODE_ENV=production bun run src/scripts/seedAdminProd.ts"
   },
   "devDependencies": {
     "@types/pg": "^8.15.5",

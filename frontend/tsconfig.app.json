@@ -29,6 +29,12 @@
       "@/*": ["../backend/src/*"]
     }
   },
-  "include": ["./src/**/*.ts", "./src/**/*.tsx", "../backend/src/**/*.ts"],
+  "include": [
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+    "../backend/src/**/*.ts",
+    "../backend/src/env-runtime.ts",
+    "../backend/src/env.ts"
+  ],
   "references": [{ "path": "../backend/tsconfig.json" }]
 }

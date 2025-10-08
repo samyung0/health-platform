@@ -16,7 +16,13 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/data/**/*.json"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/data/**/*.json",
+    "src/env-runtime.ts",
+    "src/env.ts"
+  ],
   "tsc-alias": {
     "resolveFullPaths": true
   }
