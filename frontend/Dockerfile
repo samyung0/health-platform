@@ -2,11 +2,14 @@
 FROM public.ecr.aws/w0g4q7i6/bun:1.2.16-alpine AS base
 
 # Build arguments
+ARG VITE_BACKEND_URL
 ARG NODE_ENV=production
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
+
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
 # Copy root package.json and workspace files
 COPY package.json bun.lockb ./
