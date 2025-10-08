@@ -23,8 +23,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: school-platform-prod-backend
     restart: unless-stopped
     env_file:
@@ -39,8 +39,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       target: production
       args:
         NODE_ENV: production

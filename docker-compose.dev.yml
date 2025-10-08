@@ -21,44 +21,49 @@ services:
       retries: 3
       start_period: 30s
 
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: school-platform-dev-backend
-  #   restart: unless-stopped
-  #   env_file:
-  #     - .env.development
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./backend:/app
-  #     - /app/node_modules
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - school-platform-network
-  #   command: ["bun", "run", "dev"]
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: school-platform-dev-backend
+    restart: unless-stopped
+    env_file:
+      - .env.development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - school-platform-network
+    command: ["bun", "run", "dev"]
 
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #     target: development
-  #     args:
-  #       NODE_ENV: development
-  #   container_name: school-platform-dev-frontend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "5173:5173"
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-  #   environment:
-  #     - VITE_BACKEND_URL=http://localhost:3000
-  #   networks:
-  #     - school-platform-network
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: development
+      args:
+        NODE_ENV: development
+    container_name: school-platform-dev-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app/frontend
+      - ./backend:/app/backend
+      - /app/node_modules
+      - /app/frontend/node_modules
+      - /app/backend/node_modules
+    environment:
+      - VITE_BACKEND_URL=http://localhost:3000
+    depends_on:
+      - backend
+    networks:
+      - school-platform-network
 
 volumes:
   postgres_data:
