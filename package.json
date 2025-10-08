@@ -14,9 +14,7 @@
     "docker:down": "docker compose --env-file .env.development -f docker-compose.dev.yml down",
     "docker:prod:down": "docker compose --env-file .env.production -f docker-compose.prod.yml down",
     "interact": "docker exec -it school-platform-dev-db psql -U test -d postgres",
-    "build:all": "cd backend && bun run typecheck && cd ../frontend && bun run build",
-    "check:versions": "node scripts/check-versions.js",
-    "preinstall": "bun run check:versions"
+    "build:all": "cd backend && bun run typecheck && cd ../frontend && bun run build"
   },
   "devDependencies": {
     "@types/bun": "latest",
