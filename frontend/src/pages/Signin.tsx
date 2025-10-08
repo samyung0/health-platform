@@ -51,7 +51,10 @@ function Signin() {
                     form.current?.reset();
                     return;
                   }
-                  redirect("/");
+                  redirect("/", {
+                    replace: true,
+                    flushSync: true,
+                  });
                 }}
               >
                 <div className="space-y-4">
