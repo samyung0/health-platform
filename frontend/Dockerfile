@@ -12,7 +12,6 @@ WORKDIR /app
 COPY package.json bun.lockb ./
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
-COPY scripts/ ./scripts/
 
 # Install dependencies for the entire workspace
 RUN bun install
