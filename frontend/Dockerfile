@@ -1,5 +1,5 @@
 # Frontend Dockerfile for Vite + React
-FROM oven/bun:1-alpine AS base
+FROM public.ecr.aws/w0g4q7i6/bun:1.2.16-alpine AS base
 
 # Build arguments
 ARG NODE_ENV=production
@@ -36,7 +36,7 @@ EXPOSE 5173
 CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
 
 # Production stage with nginx
-FROM nginx:alpine AS production
+FROM public.ecr.aws/docker/library/nginx:alpineAS production
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 

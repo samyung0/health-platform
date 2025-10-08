@@ -1,5 +1,5 @@
 # Backend Dockerfile for Bun
-FROM oven/bun:1-alpine AS base
+FROM public.ecr.aws/w0g4q7i6/bun:1.2.16-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
