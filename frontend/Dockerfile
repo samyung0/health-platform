@@ -36,7 +36,7 @@ EXPOSE 5173
 CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
 
 # Production stage with nginx
-FROM public.ecr.aws/docker/library/nginx:alpineAS production
+FROM public.ecr.aws/docker/library/nginx:alpine AS production
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 
