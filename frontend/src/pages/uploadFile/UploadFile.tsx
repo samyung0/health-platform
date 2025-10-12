@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import Sidebar from "../../partials/Sidebar";
 import Header from "../../partials/Header";
@@ -6,12 +6,27 @@ import UploadTestTable from "../../partials/uploadTestFile/UploadTestTable";
 import UploadTestDialog from "~/partials/uploadTestFile/UploadTestDialog";
 import UploadStudentInfoDialog from "~/partials/uploadStudentInfo/UploadStudentInfoDialog";
 import UploadSchoolExerciseDialog from "~/partials/uploadSchoolExercise/uploadSchoolExerciseDialog";
+import { getPermission } from "~/lib/utils";
+import { authClient } from "~/utils/betterAuthClient";
+import PageNotFound from "~/pages/utility/PageNotFound";
 
 function UploadFile() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSchoolTest, setOpenSchoolTest] = useState(false);
   const [openStudentInfo, setOpenStudentInfo] = useState(false);
   const [openSchoolExercise, setOpenSchoolExercise] = useState(false);
+
+  const { data: session } = authClient.useSession();
+  const { canUploadSchoolTest, canUploadStudentInfo } = useMemo(
+    () => getPermission(session),
+    [session]
+  );
+
+  if (!session) return <div>加载中 ...</div>;
+
+  if (!canUploadSchoolTest && !canUploadStudentInfo) {
+    return <PageNotFound />;
+  }
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -36,48 +51,54 @@ function UploadFile() {
 
               {/* Right: Actions */}
               <div className="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
-                <button
-                  className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                  onClick={() => setOpenStudentInfo(true)}
-                >
-                  <svg
-                    className="fill-current shrink-0 xs:hidden"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
+                {canUploadStudentInfo && (
+                  <button
+                    className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
+                    onClick={() => setOpenStudentInfo(true)}
                   >
-                    <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
-                  </svg>
-                  <span className="max-xs:sr-only">上传学生信息</span>
-                </button>
-                <button
-                  className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                  onClick={() => setOpenSchoolTest(true)}
-                >
-                  <svg
-                    className="fill-current shrink-0 xs:hidden"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
+                    <svg
+                      className="fill-current shrink-0 xs:hidden"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
+                    </svg>
+                    <span className="max-xs:sr-only">上传学生信息</span>
+                  </button>
+                )}
+                {canUploadSchoolTest && (
+                  <button
+                    className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
+                    onClick={() => setOpenSchoolTest(true)}
                   >
-                    <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
-                  </svg>
-                  <span className="max-xs:sr-only">上传体测数据</span>
-                </button>
-                <button
-                  className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                  onClick={() => setOpenSchoolExercise(true)}
-                >
-                  <svg
-                    className="fill-current shrink-0 xs:hidden"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
+                    <svg
+                      className="fill-current shrink-0 xs:hidden"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
+                    </svg>
+                    <span className="max-xs:sr-only">上传体测数据</span>
+                  </button>
+                )}
+                {canUploadSchoolTest && (
+                  <button
+                    className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
+                    onClick={() => setOpenSchoolExercise(true)}
                   >
-                    <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
-                  </svg>
-                  <span className="max-xs:sr-only">上传校内体锻数据</span>
-                </button>
+                    <svg
+                      className="fill-current shrink-0 xs:hidden"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
+                    </svg>
+                    <span className="max-xs:sr-only">上传校内体锻数据</span>
+                  </button>
+                )}
               </div>
             </div>
 

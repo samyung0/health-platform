@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 import { authClient } from "~/utils/betterAuthClient";
 import AuthImage from "../images/auth-image.jpg";
 
 function Signin() {
-  // const { data: session } = authClient.useSession();
-  const redirect = useNavigate();
+  const { data: session } = authClient.useSession();
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (form.current) {
@@ -14,6 +13,9 @@ function Signin() {
       (form.current.querySelector("input[name='username']") as HTMLInputElement)?.focus();
     }
   }, []);
+  if (session) {
+    return <Navigate to="/" replace />;
+  }
   return (
     <main className="bg-white dark:bg-gray-900">
       <div className="relative md:flex">
@@ -51,10 +53,6 @@ function Signin() {
                     form.current?.reset();
                     return;
                   }
-                  redirect("/", {
-                    replace: true,
-                    flushSync: true,
-                  });
                 }}
               >
                 <div className="space-y-4">

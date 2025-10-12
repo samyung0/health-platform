@@ -1,43 +1,8 @@
-import { useStore } from "@nanostores/react";
-import { useMemo } from "react";
-import { cn, findGradeFrontend } from "~/lib/utils";
-import { useSchoolTests } from "~/states/schoolTest";
-import {
-  atomYearChosen,
-  useAllSchoolTestRecordsByYearStore,
-  atomFitnessTestChosen,
-} from "~/states/schoolTestRecords";
+import { cn } from "~/lib/utils";
+import { useAllSchoolTestRecordsByYearStore } from "~/states/schoolTestRecords";
 
 function SingleClassTotalScoreCard() {
-  const data = useAllSchoolTestRecordsByYearStore().data;
-  const testData = useSchoolTests().data?.data ?? [];
-  const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const yearChosen = useStore(atomYearChosen);
-  const d = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearChosen) return null;
-    let sumAvgNorm = 0;
-    let sumNorm = 0;
-    let sumParticipating = 0;
-    let sumAdditional = 0;
-    const scoresGrades = testData.find(
-      (item) => item.name === fitnessTestChosen[0]
-    )?.mainUploadYearsAndClassesScoresGrades;
-    if (!scoresGrades || !scoresGrades[yearChosen]) return null;
-    for (const class_ in scoresGrades[yearChosen]) {
-      const total = parseInt(scoresGrades[yearChosen][class_][5]);
-      sumAvgNorm += parseFloat(scoresGrades[yearChosen][class_][0]) * total;
-      sumNorm += parseFloat(scoresGrades[yearChosen][class_][3]) * total;
-      sumParticipating += total;
-      sumAdditional += parseFloat(scoresGrades[yearChosen][class_][4]) * total;
-    }
-    return [
-      (sumAvgNorm / sumParticipating).toFixed(1),
-      findGradeFrontend(sumAvgNorm / sumParticipating),
-      -1,
-      (sumNorm / sumParticipating).toFixed(1),
-      (sumAdditional / sumParticipating).toFixed(1),
-    ];
-  }, [data, fitnessTestChosen, yearChosen]);
+  const d = useAllSchoolTestRecordsByYearStore().data?.dataSetCard3 ?? null;
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 xl:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">

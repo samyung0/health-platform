@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { format } from "date-fns";
 import { Calendar } from "~/components/ui/calendar";
@@ -6,12 +6,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover
 import Header from "~/partials/Header";
 import SingleClassTotalParticipationCard from "~/partials/schoolExerciseClass/SchoolExerciseClassCard01";
 import Sidebar from "~/partials/Sidebar";
-import { cn } from "~/lib/utils";
+import { cn, getPermission } from "~/lib/utils";
 import SingleClassOnlyParticipationLineCard from "~/partials/schoolExerciseClass/SchoolExerciseClassCard02";
 import SingleSelect from "~/components/SingleSelect";
 import SingleClassAnyExerciseCard from "~/partials/schoolExerciseClass/SchoolExerciseClassCard03";
 import SingleClassOverallDurationBarCard from "~/partials/schoolExerciseClass/SchoolExerciseClassCard02-1";
 import SingleClassOverallDurationDonutCard from "~/partials/schoolExerciseClass/SchoolExerciseClassCard02-2";
+import { authClient } from "~/utils/betterAuthClient";
+import PageNotFound from "~/pages/utility/PageNotFound";
 
 const classData = [
   {
@@ -35,6 +37,12 @@ function Dashboard() {
   const [date, setDate] = useState<{ from: Date | undefined; to?: Date | undefined } | undefined>(
     undefined
   );
+  const { data: session } = authClient.useSession();
+  const { canSeeWholeClass } = useMemo(() => getPermission(session), [session]);
+
+  if (!canSeeWholeClass) {
+    return <PageNotFound />;
+  }
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">

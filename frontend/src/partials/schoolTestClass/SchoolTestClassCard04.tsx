@@ -9,6 +9,8 @@ import {
   atomFitnessTestChosen,
 } from "~/states/schoolTestRecords";
 import { useStore } from "@nanostores/react";
+import type { InferResponseType } from "hono/client";
+import type { recordRouterClient } from "~/utils/routerClient";
 
 // TODO: date as global state
 // const testData = [
@@ -31,106 +33,19 @@ import { useStore } from "@nanostores/react";
 // const classPassRate = 80;
 // const dataSelected = [12321, 12322];
 
-function SingleClassDetailGradeBarCard({ type }: { type: string }) {
-  // const [selected, setSelected] = useState<(typeof GENDER_FILTER)[number]>("总计");
-  // const [open, setOpen] = useState(false);
-
-  const data = useAllSchoolTestRecordsByClassStore().data;
-  const testData = useSchoolTests().data?.data ?? [];
+function SingleClassDetailGradeBarCard({
+  type,
+  data,
+}: {
+  type: string;
+  data: InferResponseType<
+    typeof recordRouterClient.api.records.schoolTest.class.$get
+  >["data"]["card4"][number];
+}) {
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const yearClassChosen = useStore(atomClassChosen);
-
-  const people = useMemo<Record<string, number>>(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen) return {};
-    const year = yearClassChosen.slice(0, 3);
-    const class_ = yearClassChosen.slice(3);
-    const people: Record<string, number> = {};
-    for (const test of fitnessTestChosen) {
-      const scoresGrades = testData.find(
-        (item) => item.name === test
-      )?.mainUploadYearsAndClassesScoresGrades;
-      if (!scoresGrades || scoresGrades[year]?.[class_]?.[5] === undefined) continue;
-      people[test] = parseInt(scoresGrades[year][class_][5]);
-    }
-    return people;
-  }, [data, fitnessTestChosen, yearClassChosen]);
-
-  const d = useMemo(() => {
-    if (!data || !testData || fitnessTestChosen.length === 0 || !yearClassChosen) return null;
-    const year = yearClassChosen.slice(0, 3);
-    const class_ = yearClassChosen.slice(3);
-    let sum = 0;
-    let passing = 0;
-    const scoresGrades = testData.find(
-      (item) => item.name === fitnessTestChosen[0]
-    )?.mainUploadYearsAndClassesScoresGrades;
-    if (!scoresGrades || scoresGrades[year]?.[class_]?.[5] === undefined) return null;
-    const participatedStudents = parseInt(scoresGrades[year][class_][5]);
-    for (const record of data[fitnessTestChosen[0]][year][class_]) {
-      if (record.recordType === type && record.normalizedScore !== null) {
-        sum += record.normalizedScore;
-        sum += record.additionalScore ?? 0;
-        if (type === "体重指数（BMI）") {
-          if (record.grade !== "肥胖") {
-            passing++;
-          }
-        } else {
-          if (record.grade !== "不及格") {
-            passing++;
-          }
-        }
-      }
-    }
-    return {
-      classScore: (sum / participatedStudents).toFixed(1),
-      grade: findGradeFrontend(sum / participatedStudents),
-      classPassRate: ((passing / participatedStudents) * 100).toFixed(1),
-    };
-  }, [data, fitnessTestChosen, yearClassChosen, testData]);
-
-  const dataSet = useMemo(() => {
-    if (!data || !testData || fitnessTestChosen.length === 0 || !yearClassChosen) return null;
-    const year = yearClassChosen.slice(0, 3);
-    const class_ = yearClassChosen.slice(3);
-    const res: { label: string; date: Date; data: number[] }[] = [];
-    for (const test of fitnessTestChosen) {
-      let gradeExcellent = 0;
-      let gradeGood = 0;
-      let gradeAverage = 0;
-      let gradeFailed = 0;
-      if (!data[test]?.[year]?.[class_]) continue;
-      for (const record of data[test][year][class_]) {
-        if (record.recordType === type && record.grade !== null) {
-          if (type === "体重指数（BMI）") {
-            gradeExcellent += record.grade === "正常" ? 1 : 0;
-            gradeGood += record.grade === "低体重" ? 1 : 0;
-            gradeAverage += record.grade === "超重" ? 1 : 0;
-            gradeFailed += record.grade === "肥胖" ? 1 : 0;
-          } else {
-            gradeExcellent += record.grade === "优秀" ? 1 : 0;
-            gradeGood += record.grade === "良好" ? 1 : 0;
-            gradeAverage += record.grade === "及格" ? 1 : 0;
-            gradeFailed += record.grade === "不及格" ? 1 : 0;
-          }
-        }
-      }
-      if (type === "体重指数（BMI）") {
-        res.push({
-          label: test,
-          date: new Date(testData.find((item) => item.id === test)?.fitnessTestDate ?? new Date()),
-          data: [gradeGood, gradeExcellent, gradeAverage, gradeFailed],
-        });
-      } else {
-        res.push({
-          label: test,
-          date: new Date(testData.find((item) => item.id === test)?.fitnessTestDate ?? new Date()),
-          data: [gradeFailed, gradeAverage, gradeGood, gradeExcellent],
-        });
-      }
-    }
-    return res;
-  }, [data, fitnessTestChosen, yearClassChosen, testData]);
-
+  const dataSet = data.res;
+  const d = data.d;
+  const people = data.people;
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 bg-white dark:bg-gray-800 shadow-xs rounded-xl justify-between">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex xl:items-center xl:justify-between justify-start items-stretch xl:flex-row flex-col flex-wrap gap-y-2 ">

@@ -1,43 +1,10 @@
 import SingleStudentOnlyOverallBarChart from "~/charts/SingleStudentOnlyOverallBarChart";
-import { useMemo } from "react";
 import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
-import { useSchoolTests } from "~/states/schoolTest";
-import {
-  useAllSchoolTestRecordsByMeStore,
-  atomFitnessTestChosen,
-} from "~/states/schoolTestRecords";
-import { useStore } from "@nanostores/react";
+import { useAllSchoolTestRecordsByMeStore } from "~/states/schoolTestRecords";
 
 function SingleStudentOnlyOverallBarCard() {
-  const data = useAllSchoolTestRecordsByMeStore().data;
-  const testData = useSchoolTests().data;
-  const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const mapped = useMemo(() => {
-    if (!data || !testData?.data) return [];
-    const r: { label: string; date: Date; data: (number | null)[] }[] = [];
-    for (const key of Object.keys(data)) {
-      if (!fitnessTestChosen.includes(key)) continue;
-      const item = data[key as keyof typeof data];
-      r.push({
-        label: key,
-        date: new Date(
-          testData.data.find((item) => item.id === key)?.fitnessTestDate ?? new Date()
-        ),
-        data: FRONTEND_EXERCISE_TYPES.map(
-          (type) => item.find((item) => item.recordType === type)?.normalizedScore ?? null
-        ).filter((m) => m !== null),
-      });
-    }
-    return r;
-  }, [data, fitnessTestChosen]);
-  const passingRate = useMemo(() => {
-    if (fitnessTestChosen.length === 0 || !mapped.find((m) => m.label === fitnessTestChosen[0]))
-      return "--";
-    const total = mapped
-      .find((m) => m.label === fitnessTestChosen[0])
-      ?.data.filter((m) => m !== null)! as number[];
-    return ((total.filter((m) => m >= 60).length / total.length) * 100).toFixed(1) + "%";
-  }, [mapped]);
+  const dataMapped = useAllSchoolTestRecordsByMeStore().data?.data.overallBar || [];
+  const passingRate = useAllSchoolTestRecordsByMeStore().data?.data.overalBarPassingRate || "--";
   return (
     <div className="flex flex-col col-span-full bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
@@ -47,7 +14,7 @@ function SingleStudentOnlyOverallBarCard() {
         总及格率 {passingRate}
       </div>
       <SingleStudentOnlyOverallBarChart
-        dataFetched={mapped}
+        dataFetched={dataMapped}
         exerciseTypes={FRONTEND_EXERCISE_TYPES}
         height={250}
       />

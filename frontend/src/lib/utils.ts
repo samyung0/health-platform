@@ -4,6 +4,7 @@ import Grading_ from "@/data/persistent/grading.json";
 import GradingRanking_ from "@/data/persistent/grading_ranking.json";
 import measureType_ from "@/data/persistent/measure_type.json";
 import type { EntityType } from "@/db/schema";
+import type { Session } from "@/lib/types";
 import type { EventContext } from "chartjs-plugin-annotation";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -290,4 +291,36 @@ export const findTestBMIScoreAndGradeFrontend = (
     throw new Error("BMI grade not found, " + gender + ", " + schoolType + ", " + year);
   }
   return r;
+};
+
+export const getPermission = (session: Session | null) => {
+  const ret = {
+    canSeeWholeSchool: false,
+    canSeeWholeYear: false,
+    canSeeWholeClass: false,
+    canSeeSelf: false,
+    canUploadSchoolTest: false,
+    canUploadStudentInfo: false,
+  };
+  if (!session) return ret;
+  ret.canSeeWholeSchool =
+    session.activeClassifications.length > 0 &&
+    session.activeClassifications[0].canAccessSchoolInClassification;
+  ret.canSeeWholeYear =
+    session.activeClassifications.length > 0 &&
+    (session.activeClassifications[0].canAccessYearInClassification ||
+      session.activeClassifications[0].canAccessSchoolInClassification);
+  ret.canSeeWholeClass =
+    session.activeClassifications.length > 0 &&
+    (session.activeClassifications[0].canAccessClassInClassification ||
+      session.activeClassifications[0].canAccessSchoolInClassification ||
+      session.activeClassifications[0].canAccessYearInClassification);
+  ret.canSeeSelf = !ret.canSeeWholeSchool && !ret.canSeeWholeYear && !ret.canSeeWholeClass;
+  ret.canUploadSchoolTest =
+    session.activeClassifications.length > 0 &&
+    session.activeClassifications[0].canUploadSchoolTest;
+  ret.canUploadStudentInfo =
+    session.activeClassifications.length > 0 &&
+    session.activeClassifications[0].canUploadStudentInfo;
+  return ret;
 };

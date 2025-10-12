@@ -68,7 +68,7 @@ function SingleClassDetailGradeBarChart({
   totalStudents,
 }: {
   height?: number;
-  dataFetched: { label: string; date: Date; data: number[] }[];
+  dataFetched: { label: string; date: Date | string; data: number[] }[];
   type: string;
   totalStudents: Record<string, number>;
 }) {
@@ -103,7 +103,11 @@ function SingleClassDetailGradeBarChart({
           : (GRADING_SCALE_KEYS as unknown as string[]),
       datasets: dataFetched
         // largest to smallest timescale
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .sort(
+          (a, b) =>
+            (b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime()) -
+            (a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime())
+        )
         .filter((item) => totalStudents[item.label] !== undefined)
         .map((item, index) => ({
           label: item.label,

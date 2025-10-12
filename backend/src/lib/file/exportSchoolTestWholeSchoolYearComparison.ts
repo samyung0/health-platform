@@ -431,6 +431,68 @@ export default async function exportSchoolTestWholeSchoolYearComparison(
     }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    const column_widths = [8, 10, 8, 6, 8, 6, 8, 6, 8, 8];
+    ws["!cols"] = column_widths.map((width) => ({ wch: width }));
+
+    for (const col of ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]) {
+      for (const row of Array.from({ length: classOrder.length + 2 }, (_, i) => i).map(String)) {
+        ws[`${col}${row}`] = {
+          ...(ws[`${col}${row}`] || {
+            t: "s",
+            v: "",
+          }),
+          s: {
+            font: {
+              bold: row === "1",
+            },
+            alignment: {
+              horizontal: "center",
+              vertical: "center",
+            },
+            border: {
+              top: {
+                style: "thin",
+                color: "#000000",
+              },
+              bottom: {
+                style: "thin",
+                color: "#000000",
+              },
+              left: {
+                style: "thin",
+                color: "#000000",
+              },
+              right: {
+                style: "thin",
+                color: "#000000",
+              },
+            },
+          },
+        };
+      }
+    }
+
+    const blue_col = ["D", "E", "H", "I", "K"];
+    for (const col of blue_col) {
+      for (const row of Array.from({ length: classOrder.length + 2 }, (_, i) => i).map(String)) {
+        ws[`${col}${row}`] = {
+          ...(ws[`${col}${row}`] || {
+            t: "s",
+            v: "",
+            s: {},
+          }),
+          s: {
+            ...(ws[`${col}${row}`].s || {}),
+            fill: {
+              // patternType: "solid",
+              fgColor: { rgb: "ffd9e8f5" },
+            },
+          },
+        };
+      }
+    }
+
     XLSX.utils.book_append_sheet(workbook, ws, year);
   }
 

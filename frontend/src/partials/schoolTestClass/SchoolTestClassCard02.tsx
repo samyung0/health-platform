@@ -1,54 +1,9 @@
 import SingleClassTotalGradeDonutChart from "~/charts/SingleClassTotalGradeDonutChart";
-import {
-  useAllSchoolTestRecordsByClassStore,
-  atomFitnessTestChosen,
-  atomClassChosen,
-} from "~/states/schoolTestRecords";
-import { useAllSchoolData } from "~/states/schoolData";
-import { useSchoolTests } from "~/states/schoolTest";
-import { useMemo } from "react";
-import { useStore } from "@nanostores/react";
+import { useAllSchoolTestRecordsByClassStore } from "~/states/schoolTestRecords";
 
 function SingleClassTotalGradeDonutCard() {
-  const data = useAllSchoolTestRecordsByClassStore().data;
-  const testData = useSchoolTests().data?.data ?? [];
-  const allSchools = useAllSchoolData().data?.data ?? {};
-  const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const yearClassChosen = useStore(atomClassChosen);
-  const passingRate = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen) return null;
-    const year = yearClassChosen.slice(0, 3);
-    const class_ = yearClassChosen.slice(3);
-    const scoresGrades = testData.find(
-      (item) => item.name === fitnessTestChosen[0]
-    )?.mainUploadYearsAndClassesScoresGrades;
-    if (!scoresGrades || scoresGrades[year]?.[class_] === undefined) return null;
-    return Number(scoresGrades[year][class_][2]) * 100;
-  }, [data, fitnessTestChosen, yearClassChosen]);
-  const dataSet = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen || !allSchools) return null;
-    const year = yearClassChosen.slice(0, 3);
-    const class_ = yearClassChosen.slice(3);
-    return fitnessTestChosen
-      .map((test) => {
-        const tt = testData.find((item) => item.name === test)!;
-        const scoresGrades = testData.find(
-          (item) => item.name === test
-        )?.mainUploadYearsAndClassesScoresGrades;
-        if (!tt || !scoresGrades || scoresGrades[year]?.[class_] === undefined) return null;
-        const participatedStudents = parseInt(scoresGrades[year][class_][5]);
-        const passingRate = parseFloat(scoresGrades[year][class_][2]);
-        return {
-          label: test,
-          date: new Date(tt.fitnessTestDate ?? new Date()),
-          data: [
-            Math.round(passingRate * participatedStudents),
-            participatedStudents - Math.round(passingRate * participatedStudents),
-          ] as [number, number],
-        };
-      })
-      .filter((item) => item !== null);
-  }, [passingRate]);
+  const dataSet = useAllSchoolTestRecordsByClassStore().data?.data.dataSetCard2 ?? null;
+  const passingRate = useAllSchoolTestRecordsByClassStore().data?.data.passingRate ?? null;
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 xl:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">

@@ -4,10 +4,23 @@ import Sidebar from "../../partials/Sidebar";
 import Header from "../../partials/Header";
 // import SchoolTestRecordsDialog from "~/partials/schoolTestRecords/SchoolTestRecordsDialog";
 import SchoolTestRecordsTable from "~/partials/schoolTestRecords/SchoolTestRecordsTable";
+import PageNotFound from "~/pages/utility/PageNotFound";
+import { useMemo } from "react";
+import { getPermission } from "~/lib/utils";
+import { authClient } from "~/utils/betterAuthClient";
 
 function SchoolTestRecords() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: session } = authClient.useSession();
   const [openUploadSchoolTest, setOpenUploadSchoolTest] = useState(false);
+
+  const { canSeeWholeSchool } = useMemo(() => getPermission(session), [session]);
+
+  if (!session) return <div>加载中 ...</div>;
+
+  if (!canSeeWholeSchool) {
+    return <PageNotFound />;
+  }
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">

@@ -66,7 +66,7 @@ function SingleYearDetailScoreBarChart({
   classes,
 }: {
   height?: number;
-  dataFetched: { label: string; date: Date; data: number[] }[];
+  dataFetched: { label: string; date: Date | string; data: number[] }[];
   classes: string[];
 }) {
   const [chart, setChart] = useState<Chart | null>(null);
@@ -95,7 +95,7 @@ function SingleYearDetailScoreBarChart({
       labels: classes,
       datasets: dataFetched
         // largest to smallest timescale
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .map((item, index) => ({
           label: item.label,
           data: item.data,

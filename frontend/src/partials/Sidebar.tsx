@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import SidebarLinkGroup from "./SidebarLinkGroup";
+import { authClient } from "~/utils/betterAuthClient";
+import { getPermission } from "~/lib/utils";
 
 function Sidebar({
   sidebarOpen,
@@ -20,6 +22,7 @@ function Sidebar({
 
   const storedSidebarExpanded = localStorage.getItem("sidebar-expanded");
   const [sidebarExpanded, setSidebarExpanded] = useState(storedSidebarExpanded !== "false");
+  const { data: session } = authClient.useSession();
 
   // close on click outside
   useEffect(() => {
@@ -51,6 +54,15 @@ function Sidebar({
       document.querySelector("body")!.classList.remove("sidebar-expanded");
     }
   }, [sidebarExpanded]);
+
+  const {
+    canSeeWholeSchool,
+    canSeeWholeYear,
+    canSeeWholeClass,
+    canSeeSelf,
+    canUploadSchoolTest,
+    canUploadStudentInfo,
+  } = getPermission(session);
 
   return (
     <div className="min-w-fit">
@@ -167,86 +179,96 @@ function Sidebar({
                       </a>
                       <div className="xl:hidden xl:sidebar-expanded:block">
                         <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolTest/school"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                学校成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolTest/year"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                年级成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolTest/class"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                班级成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolTest/self"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                个人成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolTest/allRecords"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                所有记录
-                              </span>
-                            </NavLink>
-                          </li>
+                          {canSeeWholeSchool && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolTest/school"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  学校成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeWholeYear && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolTest/year"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  年级成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeWholeClass && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolTest/class"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  班级成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeSelf && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolTest/self"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  个人成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeWholeSchool && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolTest/allRecords"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  所有记录
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
                         </ul>
                       </div>
                     </React.Fragment>
@@ -306,86 +328,96 @@ function Sidebar({
                       </a>
                       <div className="xl:hidden xl:sidebar-expanded:block">
                         <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolExercise/school"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                学校成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolExercise/year"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                年级成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolExercise/class"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                班级成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolExercise/self"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                个人成绩
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/schoolExercise/allRecords"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-600"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                                所有记录
-                              </span>
-                            </NavLink>
-                          </li>
+                          {canSeeWholeSchool && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolExercise/school"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  学校成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeWholeYear && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolExercise/year"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  年级成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeWholeClass && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolExercise/class"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  班级成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeSelf && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolExercise/self"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  个人成绩
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
+                          {canSeeWholeSchool && (
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                end
+                                to="/schoolExercise/allRecords"
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " +
+                                  (isActive
+                                    ? "text-violet-600"
+                                    : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                                  所有记录
+                                </span>
+                              </NavLink>
+                            </li>
+                          )}
                         </ul>
                       </div>
                     </React.Fragment>
@@ -484,43 +516,45 @@ function Sidebar({
                 }}
               </SidebarLinkGroup>
 
-              <li
-                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r ${
-                  pathname.includes("uploadFile") &&
-                  "from-violet-500/[0.12] dark:from-violet-500/[0.24] to-violet-500/[0.04]"
-                }`}
-              >
-                <NavLink
-                  end
-                  to="/uploadFile"
-                  className={`block text-gray-800 dark:text-gray-100 truncate transition duration-150 ${
-                    pathname.includes("uploadFile")
-                      ? ""
-                      : "hover:text-gray-900 dark:hover:text-white"
+              {(canUploadSchoolTest || canUploadStudentInfo) && (
+                <li
+                  className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r ${
+                    pathname.includes("uploadFile") &&
+                    "from-violet-500/[0.12] dark:from-violet-500/[0.24] to-violet-500/[0.04]"
                   }`}
                 >
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 fill-current ${
-                        pathname.includes("uploadFile")
-                          ? "text-violet-600"
-                          : "text-gray-400 dark:text-gray-500"
-                      }`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                    >
-                      <path d="M5 4a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H5Z" />
-                      <path d="M4 0a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4H4ZM2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Z" />
-                      <path d="M4 0a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4H4ZM2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Z" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
-                      上传文件
-                    </span>
-                  </div>
-                </NavLink>
-              </li>
+                  <NavLink
+                    end
+                    to="/uploadFile"
+                    className={`block text-gray-800 dark:text-gray-100 truncate transition duration-150 ${
+                      pathname.includes("uploadFile")
+                        ? ""
+                        : "hover:text-gray-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <svg
+                        className={`shrink-0 fill-current ${
+                          pathname.includes("uploadFile")
+                            ? "text-violet-600"
+                            : "text-gray-400 dark:text-gray-500"
+                        }`}
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M5 4a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H5Z" />
+                        <path d="M4 0a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4H4ZM2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Z" />
+                        <path d="M4 0a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4H4ZM2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Z" />
+                      </svg>
+                      <span className="text-sm font-medium ml-4 xl:opacity-0 xl:sidebar-expanded:opacity-100 duration-200">
+                        上传文件
+                      </span>
+                    </div>
+                  </NavLink>
+                </li>
+              )}
 
               <li
                 className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r ${

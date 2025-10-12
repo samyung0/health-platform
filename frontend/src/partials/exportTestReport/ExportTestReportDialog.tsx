@@ -3,8 +3,8 @@ import FileSaver from "file-saver";
 import { useEffect, useMemo, useState } from "react";
 import SingleSelect from "~/components/SingleSelect";
 import { availableReportsToExport } from "~/lib/const";
-import { cn, getYearOrder } from "~/lib/utils";
-import { useAllSchoolData } from "~/states/schoolData";
+import { cn, getPermission, getYearOrder } from "~/lib/utils";
+import { useAllSchoolData, useQueryableSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
 import { authClient } from "~/utils/betterAuthClient";
 import { fileRouterClient } from "~/utils/routerClient";
@@ -18,6 +18,7 @@ export default function ExportTestReportDialog({
 }) {
   const { data: { data: testData } = { data: [] } } = useSchoolTests();
   const { data: { data: allSchoolData } = { data: {} } } = useAllSchoolData();
+  const queryableYearsAndClasses = useQueryableSchoolData().data?.data ?? {};
   const [request, setRequest] = useState<{
     reportsToProcess: (typeof availableReportsToExport)[number] | null;
     year: string | null;
@@ -43,67 +44,42 @@ export default function ExportTestReportDialog({
     }[]
   >([]);
 
+  const { canSeeWholeSchool, canSeeWholeYear, canSeeWholeClass, canSeeSelf } = useMemo(
+    () => getPermission(session),
+    [session]
+  );
   const selectableReports = useMemo<(typeof availableReportsToExport)[number][]>(() => {
-    if (!session) return [];
-    if (
-      session.allClassifications[0].entityType === "student" ||
-      session.allClassifications[0].entityType === "parent"
-    ) {
-      return ["个人成绩单"];
-    }
-    if (session.activeClassifications[0].canAccessSchoolInClassification) {
+    if (canSeeWholeSchool) {
       return ["全校成绩总表", "年级成绩总表", "班级成绩总表", "班级排名统计表"];
     }
-    if (session.activeClassifications[0].canAccessYearInClassification) {
+    if (canSeeWholeYear) {
       return ["年级成绩总表", "班级成绩总表"];
     }
-    if (session.activeClassifications[0].canAccessClassInClassification) {
+    if (canSeeWholeClass) {
       return ["班级成绩总表"];
     }
-    return [];
-  }, [session]);
-
-  const selectableYears = useMemo(() => {
-    if (!session) return [];
-    switch (session.allClassifications[0].entityType) {
-      case "schoolDirector":
-      case "principal":
-      case "admin":
-        return Object.keys(allSchoolData);
-      case "formTeacher":
-        return session.activeClassifications
-          .map((classification) => classification.year)
-          .filter((year) => year !== null);
-      default:
-        return [];
+    if (canSeeSelf) {
+      return ["个人成绩单"];
     }
-  }, [session]);
+    return [];
+  }, [canSeeWholeSchool, canSeeWholeYear, canSeeWholeClass, canSeeSelf]);
+
+  const selectableYears = useMemo(
+    () =>
+      Object.keys(queryableYearsAndClasses).toSorted((a, b) => getYearOrder(a) - getYearOrder(b)),
+    [queryableYearsAndClasses]
+  );
 
   const selectableClasses = useMemo<string[]>(() => {
-    if (!session) return [];
-    if (!request.year) {
+    if (!request.year || !queryableYearsAndClasses.hasOwnProperty(request.year)) {
       return [];
     }
-    switch (session.allClassifications[0].entityType) {
-      case "schoolDirector":
-      case "principal":
-      case "admin":
-      case "formTeacher":
-        return allSchoolData[request.year].map(([class_, _]) => class_);
-      case "classTeacher": {
-        const selectable: string[] = [];
-
-        for (const c of session.activeClassifications) {
-          if (c.year && c.class && c.year === request.year) {
-            selectable.push(c.class);
-          }
-        }
-        return [...new Set(selectable)];
-      }
-      default:
-        return [];
-    }
-  }, [session, request.year]);
+    return queryableYearsAndClasses[request.year].toSorted((a, b) => {
+      const numA = parseInt(a.split("班")[0]);
+      const numB = parseInt(b.split("班")[0]);
+      return numA - numB;
+    });
+  }, [queryableYearsAndClasses, request.year]);
 
   useEffect(() => {
     if (!request.schoolTestId) {
@@ -124,7 +100,6 @@ export default function ExportTestReportDialog({
       request.includeIsRedoOrMissingUpload === "补测"
         ? test.redoOrMissingUploadYearsAndClassesProcessed
         : test.mainUploadYearsAndClassesProcessed;
-    console.log(compare, request);
     if (request.includeIsRedoOrMissingUpload === "全部") {
       for (const [year, classes] of Object.entries(
         test.redoOrMissingUploadYearsAndClassesProcessed
@@ -338,12 +313,19 @@ export default function ExportTestReportDialog({
                           选择学生 <span className="text-red-500">*</span>
                         </label>
                         <SingleSelect
-                          options={[
-                            {
-                              id: session.allClassifications[0].entityId,
-                              name: session.allClassifications[0].name,
-                            },
-                          ]}
+                          options={
+                            session.allClassifications[0].children.length > 0
+                              ? session.allClassifications[0].children.map((child) => ({
+                                  id: child.entityId,
+                                  name: child.name,
+                                }))
+                              : [
+                                  {
+                                    id: session.allClassifications[0].entityId,
+                                    name: session.allClassifications[0].name,
+                                  },
+                                ]
+                          }
                           onSelectChange={(selected) => {
                             setRequest({
                               ...request,

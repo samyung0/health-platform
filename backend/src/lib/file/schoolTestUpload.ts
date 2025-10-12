@@ -505,6 +505,12 @@ export const schoolTestUpload = async (
         }
       };
 
+      await db
+        .update(fileProcess)
+        .set({
+          status: "processing",
+        })
+        .where(eq(fileProcess.id, fileProcess_.id));
       await f("all");
       if (failedRecordsIndices.length > 0) {
         console.warn(

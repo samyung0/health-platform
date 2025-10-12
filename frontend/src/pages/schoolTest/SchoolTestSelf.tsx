@@ -14,20 +14,31 @@ import {
 } from "~/states/schoolTestRecords";
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
-import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
 import { useStore } from "@nanostores/react";
+import PageNotFound from "~/pages/utility/PageNotFound";
+import { getPermission } from "~/lib/utils";
+
 function Dashboard() {
   const { data: session } = authClient.useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { fitnessTestAvailable } = useSchoolTestFitnessTestAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const data = useAllSchoolTestRecordsByMeStore().data;
+  const data = useAllSchoolTestRecordsByMeStore();
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
     [fitnessTestAvailable.length]
   );
 
+  const { canSeeSelf } = useMemo(() => getPermission(session), [session]);
+
   if (!session) return <div>加载中 ...</div>;
+
+  if (!canSeeSelf) {
+    return <PageNotFound />;
+  }
+
+  const isEnabled = data.isEnabled;
+  const hasData = data.data?.data !== undefined;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -107,22 +118,24 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            {!data && (
+            {!hasData && !isEnabled && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                请选择体测
+              </div>
+            )}
+            {!hasData && isEnabled && (
               <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
                 加载中 ...
               </div>
             )}
-            {data && (
+            {hasData && (
               <div className="grid grid-cols-12 gap-6">
                 <SingleStudentOnlyOverallBarCard />
                 <SingleStudentOnlyOverallRadarCard />
                 <SingleScoreSingleDateBMICard />
-                {FRONTEND_EXERCISE_TYPES.map(
-                  (type) =>
-                    type !== "体重指数（BMI）" && (
-                      <SingleScoreSingleDateCard key={type} type={type} />
-                    )
-                )}
+                {data.data!.data.singleScore.map((d) => (
+                  <SingleScoreSingleDateCard key={d.type} data={d} />
+                ))}
               </div>
             )}
           </div>

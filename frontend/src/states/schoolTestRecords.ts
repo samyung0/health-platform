@@ -1,5 +1,5 @@
+import { useStore } from "@nanostores/react";
 import { useQuery } from "@tanstack/react-query";
-import type { InferResponseType } from "hono/client";
 import { atom } from "nanostores";
 import { useEffect, useMemo } from "react";
 import { getYearOrder } from "~/lib/utils";
@@ -22,87 +22,6 @@ export const useAllSchoolTestRecords = () => {
         .then((res) => res.json()),
     enabled: !!session,
   });
-};
-
-export const useAllSchoolTestRecordsBySchoolStore = () => {
-  const r = useAllSchoolTestRecords();
-  return {
-    ...r,
-    data: r.data?.data.reduce((acc, record) => {
-      const fitnessTestName = record.fitnessTestName;
-      if (!fitnessTestName) return acc;
-      if (!acc[fitnessTestName]) {
-        acc[fitnessTestName] = [];
-      }
-      acc[fitnessTestName].push(record);
-      return acc;
-    }, {} as Record<string, InferResponseType<typeof $getSchoolTestRecords>["data"]>),
-  };
-};
-
-export const useAllSchoolTestRecordsByYearStore = () => {
-  const r = useAllSchoolTestRecords();
-  return {
-    ...r,
-    data: r.data?.data.reduce((acc, record) => {
-      const fitnessTestName = record.fitnessTestName;
-      const year = record.recordToEntity.year;
-      if (!fitnessTestName || !year) return acc;
-      if (!acc[fitnessTestName]) {
-        acc[fitnessTestName] = {};
-      }
-      if (!acc[fitnessTestName][year]) {
-        acc[fitnessTestName][year] = [];
-      }
-      acc[fitnessTestName][year].push(record);
-      return acc;
-    }, {} as Record<string, Record<string, InferResponseType<typeof $getSchoolTestRecords>["data"]>>),
-  };
-};
-
-export const useAllSchoolTestRecordsByClassStore = () => {
-  const r = useAllSchoolTestRecords();
-  return {
-    ...r,
-    data: r.data?.data.reduce((acc, record) => {
-      const fitnessTestName = record.fitnessTestName;
-      const year = record.recordToEntity.year;
-      const class_ = record.recordToEntity.class;
-      if (!fitnessTestName || !year || !class_) return acc;
-      if (!acc[fitnessTestName]) {
-        acc[fitnessTestName] = {};
-      }
-      if (!acc[fitnessTestName][year]) {
-        acc[fitnessTestName][year] = {};
-      }
-      if (!acc[fitnessTestName][year][class_]) {
-        acc[fitnessTestName][year][class_] = [];
-      }
-      acc[fitnessTestName][year][class_].push(record);
-      return acc;
-    }, {} as Record<string, Record<string, Record<string, InferResponseType<typeof $getSchoolTestRecords>["data"]>>>),
-  };
-};
-
-export const useAllSchoolTestRecordsByMeStore = () => {
-  const r = useAllSchoolTestRecords();
-  const { data: session } = authClient.useSession();
-  return {
-    ...r,
-    data: r.data?.data
-      .filter(
-        (record) => record.recordToEntity.entityId === session?.allClassifications[0].entityId
-      )
-      .reduce((acc, record) => {
-        const fitnessTestName = record.fitnessTestName;
-        if (!fitnessTestName) return acc;
-        if (!acc[fitnessTestName]) {
-          acc[fitnessTestName] = [];
-        }
-        acc[fitnessTestName].push(record);
-        return acc;
-      }, {} as Record<string, InferResponseType<typeof $getSchoolTestRecords>["data"]>),
-  };
 };
 
 export const atomFitnessTestChosen = atom<string[]>([]);
@@ -164,4 +83,76 @@ export const useSchoolTestYearAvailable = () => {
   return {
     yearAvailable: available,
   };
+};
+
+export const useAllSchoolTestRecordsByMeStore = () => {
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const { data: session } = authClient.useSession();
+  return useQuery({
+    queryKey: ["session", "allSchoolTestRecords", "self", fitnessTestChosen],
+    queryFn: () =>
+      recordRouterClient.api.records.schoolTest.self
+        .$get({
+          query: {
+            testName: fitnessTestChosen,
+          },
+        })
+        .then((res) => res.json()),
+    enabled: !!session && fitnessTestChosen.length > 0,
+  });
+};
+
+export const useAllSchoolTestRecordsByClassStore = () => {
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const yearClassChosen = useStore(atomClassChosen);
+  const { data: session } = authClient.useSession();
+  return useQuery({
+    queryKey: ["session", "allSchoolTestRecords", "class", fitnessTestChosen, yearClassChosen],
+    queryFn: () =>
+      recordRouterClient.api.records.schoolTest.class
+        .$get({
+          query: {
+            testName: fitnessTestChosen,
+            class: yearClassChosen,
+          },
+        })
+        .then((res) => res.json()),
+    enabled: !!session && fitnessTestChosen.length > 0 && yearClassChosen !== null,
+  });
+};
+
+export const useAllSchoolTestRecordsByYearStore = () => {
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const yearChosen = useStore(atomYearChosen);
+  const { data: session } = authClient.useSession();
+  return useQuery({
+    queryKey: ["session", "allSchoolTestRecords", "year", fitnessTestChosen, yearChosen],
+    queryFn: () =>
+      recordRouterClient.api.records.schoolTest.year
+        .$get({
+          query: {
+            testName: fitnessTestChosen,
+            year: yearChosen,
+          },
+        })
+        .then((res) => res.json()),
+    enabled: !!session && fitnessTestChosen.length > 0 && yearChosen !== null,
+  });
+};
+
+export const useAllSchoolTestRecordsBySchoolStore = () => {
+  const fitnessTestChosen = useStore(atomFitnessTestChosen);
+  const { data: session } = authClient.useSession();
+  return useQuery({
+    queryKey: ["session", "allSchoolTestRecords", "school", fitnessTestChosen],
+    queryFn: () =>
+      recordRouterClient.api.records.schoolTest.school
+        .$get({
+          query: {
+            testName: fitnessTestChosen,
+          },
+        })
+        .then((res) => res.json()),
+    enabled: !!session && fitnessTestChosen.length > 0,
+  });
 };

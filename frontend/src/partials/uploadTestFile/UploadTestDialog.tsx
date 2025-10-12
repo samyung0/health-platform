@@ -7,6 +7,7 @@ import { EXPECTED_HEADERS_FROM_DAWEI_EXPORT_FRONTEND } from "~/lib/const";
 import { cn, mapYearToChineseFrontend } from "~/lib/utils";
 import { useAllSchoolData } from "~/states/schoolData";
 import { useSchoolTests } from "~/states/schoolTest";
+import { queryClient } from "~/utils/QueryClient";
 import { fileRouterClient } from "~/utils/routerClient";
 
 export default function UploadFileDialog({
@@ -76,6 +77,14 @@ export default function UploadFileDialog({
       );
     },
     onDropAccepted: (acceptedFiles) => {
+      setMessages([]);
+      setYearAndClassScanned({});
+      setTestTypeScanned([]);
+      setMissingStudentsInYearsAndClasses({});
+      setMostlyBlankScoreStudentsInYearsAndClasses({});
+      setOverlappingYearsAndClasses({});
+      setUnrecognizedYearsAndClasses({});
+      setSubmitError(undefined);
       setFileError(undefined);
       setRequest({
         ...request,
@@ -671,6 +680,8 @@ export default function UploadFileDialog({
                         if (!response.ok || !d.data) {
                           setSubmitError((d as any).message ?? "系统错误");
                         } else {
+                          queryClient.invalidateQueries({ queryKey: ["session", "fileProcesses"] });
+                          queryClient.invalidateQueries({ queryKey: ["session", "schoolTests"] });
                           setRequest({
                             file: undefined,
                             testDate: undefined,

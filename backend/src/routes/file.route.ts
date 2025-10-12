@@ -18,6 +18,7 @@ import { schoolStudentsUpload } from "@/lib/file/schoolStudentsUpload";
 import { schoolTestUpload } from "@/lib/file/schoolTestUpload";
 import {
   checkValidSession,
+  getPermission,
   getQueryableYearsAndClasses,
   getYearOrder,
   mapEntityTypeToChinese,
@@ -31,7 +32,7 @@ import {
   uploadStudentInfoValidator,
 } from "@/lib/validators";
 import { zValidator } from "@hono/zod-validator";
-import { and, between, desc, eq, gt, sql, SQL } from "drizzle-orm";
+import { and, between, desc, eq, gt, or, sql, SQL } from "drizzle-orm";
 import Path from "path";
 
 import measureType_ from "@/data/persistent/measure_type.json";
@@ -58,6 +59,11 @@ const measureType = measureType_ as {
 const router = createRouter()
   .get("/myFileProcess", async (c) => {
     const [session, entityType] = checkValidSession(c.get("session"));
+    const { canUploadSchoolTest, canUploadStudentInfo } = getPermission(session);
+
+    if (!canUploadSchoolTest && !canUploadStudentInfo) {
+      throw new Error("Unauthorized");
+    }
 
     const fileProcess_ = await db
       .select({
@@ -121,11 +127,9 @@ const router = createRouter()
     const file = body.file;
 
     const [session, entityType] = checkValidSession(c.get("session"));
+    const { canUploadSchoolTest } = getPermission(session);
 
-    if (
-      session.activeClassifications.length === 0 ||
-      !session.activeClassifications[0].canUploadSchoolTest
-    ) {
+    if (!canUploadSchoolTest) {
       throw new Error("无权上传体测数据");
     }
 
@@ -136,7 +140,7 @@ const router = createRouter()
         and(
           eq(fileProcess.fileRequestNature, "schoolTest"),
           eq(fileProcess.isUploadRequested, true),
-          eq(fileProcess.status, "pending"),
+          or(eq(fileProcess.status, "pending"), eq(fileProcess.status, "processing")),
           gt(fileProcess.processStartDate, new Date(Date.now() - 1000 * 60 * 60 * 24))
         )
       )
@@ -180,11 +184,8 @@ const router = createRouter()
     const file = body.file;
 
     const [session, entityType] = checkValidSession(c.get("session"));
-
-    if (
-      session.activeClassifications.length === 0 ||
-      !session.activeClassifications[0].canUploadSchoolTest // same for now
-    ) {
+    const { canUploadSchoolTest } = getPermission(session);
+    if (!canUploadSchoolTest) {
       throw new Error("无权上传体锻数据");
     }
 
@@ -207,10 +208,8 @@ const router = createRouter()
     const file = body.file;
 
     const [session, entityType] = checkValidSession(c.get("session"));
-    if (
-      session.activeClassifications.length === 0 ||
-      !session.activeClassifications[0].canUploadStudentInfo
-    ) {
+    const { canUploadStudentInfo } = getPermission(session);
+    if (!canUploadStudentInfo) {
       throw new Error("无权上传学生资料");
     }
 
@@ -434,16 +433,15 @@ const router = createRouter()
     async (c) => {
       const json = c.req.valid("json");
       const [session, entityType] = checkValidSession(c.get("session"));
+      const { canSeeWholeSchool, canSeeWholeYear, canSeeWholeClass, canSeeSelf } =
+        getPermission(session);
 
       let fileData: ArrayBuffer | null = null;
 
       console.log("Downloading school test reports", JSON.stringify(json, null, 2));
       switch (json.reportsToProcess) {
         case "全校成绩总表":
-          if (
-            session.activeClassifications.length === 0 ||
-            !session.activeClassifications[0].canAccessSchoolInClassification
-          ) {
+          if (!canSeeWholeSchool) {
             throw new Error("Unauthorized");
           }
           fileData = await exportSchoolTestWholeSchool(
@@ -453,10 +451,7 @@ const router = createRouter()
           );
           break;
         case "班级排名统计表":
-          if (
-            session.activeClassifications.length === 0 ||
-            !session.activeClassifications[0].canAccessSchoolInClassification
-          ) {
+          if (!canSeeWholeSchool) {
             throw new Error("Unauthorized");
           }
           fileData = await exportSchoolTestWholeSchoolYearComparison(
@@ -466,11 +461,7 @@ const router = createRouter()
           );
           break;
         case "年级成绩总表":
-          if (
-            session.activeClassifications.length === 0 ||
-            (!session.activeClassifications[0].canAccessYearInClassification &&
-              !session.activeClassifications[0].canAccessSchoolInClassification)
-          ) {
+          if (!canSeeWholeYear) {
             throw new Error("Unauthorized");
           }
           fileData = await exportSchoolTestPerYear(
@@ -481,12 +472,7 @@ const router = createRouter()
           );
           break;
         case "班级成绩总表":
-          if (
-            session.activeClassifications.length === 0 ||
-            (!session.activeClassifications[0].canAccessClassInClassification &&
-              !session.activeClassifications[0].canAccessYearInClassification &&
-              !session.activeClassifications[0].canAccessSchoolInClassification)
-          ) {
+          if (!canSeeWholeClass) {
             throw new Error("Unauthorized");
           }
           fileData = await exportSchoolTestPerClass(
@@ -499,21 +485,29 @@ const router = createRouter()
           break;
         case "个人成绩单":
           // TODO
-          if (!json.entityId) {
+          if (!json.entityId || !canSeeSelf) {
             throw new Error("Unauthorized");
-          } else if (
-            session.activeClassifications[0].entityType === "student" &&
-            json.entityId !== session.allClassifications[0].entityId
-          ) {
-            throw new Error("Unauthorized");
-          } else if (session.activeClassifications[0].entityType === "parent") {
+          }
+          if (session.activeClassifications[0].children.length > 0) {
+            // parent
             const children = await db
               .select({
                 entityId: entity.id,
               })
               .from(entity)
               .where(eq(entity.isChildOf, session.allClassifications[0].entityId));
-            if (!children.some((child) => child.entityId === json.entityId)) {
+            if (
+              !children.some(
+                (child) =>
+                  child.entityId === json.entityId &&
+                  session.activeClassifications[0].entityId !== json.entityId
+              )
+            ) {
+              throw new Error("Unauthorized");
+            }
+          } else {
+            // student
+            if (session.activeClassifications[0].entityId !== json.entityId) {
               throw new Error("Unauthorized");
             }
           }

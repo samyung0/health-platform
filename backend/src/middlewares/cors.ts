@@ -1,5 +1,5 @@
 import { cors } from "hono/cors";
-
+console.log("process.env.FRONTEND_URL", process.env.FRONTEND_URL);
 export default cors({
   origin: process.env.FRONTEND_URL!,
   allowHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],

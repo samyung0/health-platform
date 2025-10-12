@@ -55,7 +55,7 @@ export default function HomeExerciseDialog({
   const [submitError, setSubmitError] = useState<string | undefined>(undefined);
 
   const uploadTarget = session
-    ? session.allClassifications[0].entityType === "parent"
+    ? session?.allClassifications[0].children.length > 0
       ? session?.allClassifications[0].children
       : [
           {

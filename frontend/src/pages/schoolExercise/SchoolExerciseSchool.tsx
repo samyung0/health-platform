@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { format } from "date-fns";
 import { Calendar } from "~/components/ui/calendar";
@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover
 import Header from "~/partials/Header";
 import SingleClassTotalParticipationCard from "~/partials/schoolExerciseYear/SchoolExerciseClassCard01";
 import Sidebar from "~/partials/Sidebar";
-import { cn } from "~/lib/utils";
+import { cn, getPermission } from "~/lib/utils";
 import SingleClassOnlyParticipationLineCard from "~/partials/schoolExerciseYear/SchoolExerciseClassCard02";
 import SingleSelect from "~/components/SingleSelect";
 import SingleClassAnyExerciseCard from "~/partials/schoolExerciseYear/SchoolExerciseClassCard03";
@@ -14,6 +14,8 @@ import SingleClassOverallDurationBarCard from "~/partials/schoolExerciseYear/Sch
 import SingleClassOverallDurationDonutCard from "~/partials/schoolExerciseYear/SchoolExerciseClassCard02-2";
 import SingleYearOverallDurationBarCard from "~/partials/schoolExerciseYear/SchoolExerciseClassCard01-1";
 import SingleYearOverallParticipationBarCard from "~/partials/schoolExerciseYear/SchoolExerciseClassCard01-2";
+import { authClient } from "~/utils/betterAuthClient";
+import PageNotFound from "~/pages/utility/PageNotFound";
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -21,6 +23,13 @@ function Dashboard() {
   const [date, setDate] = useState<{ from: Date | undefined; to?: Date | undefined } | undefined>(
     undefined
   );
+
+  const { data: session } = authClient.useSession();
+  const { canSeeWholeSchool } = useMemo(() => getPermission(session), [session]);
+
+  if (!canSeeWholeSchool) {
+    return <PageNotFound />;
+  }
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">

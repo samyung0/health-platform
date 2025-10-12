@@ -21,6 +21,8 @@ import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
 import { FRONTEND_EXERCISE_TYPES } from "~/lib/const";
 import { useStore } from "@nanostores/react";
+import PageNotFound from "~/pages/utility/PageNotFound";
+import { getPermission } from "~/lib/utils";
 
 // const testData = [
 //   {
@@ -60,14 +62,22 @@ function Dashboard() {
   const { classAvailable } = useSchoolTestClassAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const classChosen = useStore(atomClassChosen);
-  const data = useAllSchoolTestRecordsByClassStore().data;
+  const data = useAllSchoolTestRecordsByClassStore();
 
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
     [fitnessTestAvailable.length]
   );
+  const { canSeeWholeClass } = useMemo(() => getPermission(session), [session]);
 
   if (!session) return <div>加载中 ...</div>;
+
+  if (!canSeeWholeClass) {
+    return <PageNotFound />;
+  }
+
+  const isEnabled = data.isEnabled;
+  const hasData = data.data?.data !== undefined;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -161,22 +171,27 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            {!data && (
+            {!hasData && !isEnabled && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                请选择体测
+              </div>
+            )}
+            {!hasData && isEnabled && (
               <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
                 加载中 ...
               </div>
             )}
-            {data && (
+            {hasData && (
               <div className="grid grid-cols-12 gap-6">
                 <SingleClassTotalParticipationCard />
                 <SingleClassTotalGradeCard />
                 <SingleClassTotalScoreCard />
-                {FRONTEND_EXERCISE_TYPES.map((type) => {
+                {data.data!.data.card4.map((d) => {
                   if (!classChosen) return null;
                   const year = classChosen.slice(0, 3);
-                  if (type === "50米×8往返跑" && year !== "五年级" && year !== "六年级")
+                  if (d.type === "50米×8往返跑" && year !== "五年级" && year !== "六年级")
                     return null;
-                  return <SingleClassDetailGradeBarCard key={type} type={type} />;
+                  return <SingleClassDetailGradeBarCard key={d.type} type={d.type} data={d} />;
                 })}
               </div>
             )}

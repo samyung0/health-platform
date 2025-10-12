@@ -2,11 +2,11 @@ import type { RecordNature } from "@/db/schema/enum";
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { format } from "date-fns";
 import FileSaver from "file-saver";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import SingleSelect from "~/components/SingleSelect";
 import { Calendar } from "~/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
-import { cn } from "~/lib/utils";
+import { cn, getPermission } from "~/lib/utils";
 import { useQueryableSchoolData } from "~/states/schoolData";
 import { authClient } from "~/utils/betterAuthClient";
 import { fileRouterClient } from "~/utils/routerClient";
@@ -47,21 +47,19 @@ export default function ExportAllDataDialog({
     }[]
   >([]);
 
-  const canSelectSingleEntity =
-    session &&
-    (session.allClassifications[0].entityType === "student" ||
-      session.allClassifications[0].entityType === "parent");
+  const { canSeeSelf } = useMemo(() => getPermission(session), [session]);
+
+  // pending change, if other teahcers etc can also export single entity
+  const canSelectSingleEntity = canSeeSelf;
   const selectableEntities = session
-    ? session.allClassifications[0].entityType === "student"
-      ? [
+    ? session.allClassifications[0].children.length > 0
+      ? session.allClassifications[0].children
+      : [
           {
             name: session.allClassifications[0].name,
             entityId: session.allClassifications[0].entityId,
           },
         ]
-      : session.allClassifications[0].entityType === "parent"
-      ? session.allClassifications[0].children
-      : []
     : [];
 
   return (

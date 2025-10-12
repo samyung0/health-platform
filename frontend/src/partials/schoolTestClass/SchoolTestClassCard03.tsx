@@ -1,29 +1,9 @@
 // import SingleClassTotalScoreBarChart from "~/charts/SingleClassTotalScoreBarChart";
-import {
-  useAllSchoolTestRecordsByClassStore,
-  atomFitnessTestChosen,
-  atomClassChosen,
-} from "~/states/schoolTestRecords";
-import { useSchoolTests } from "~/states/schoolTest";
-import { useMemo } from "react";
 import { cn } from "~/lib/utils";
-import { useStore } from "@nanostores/react";
+import { useAllSchoolTestRecordsByClassStore } from "~/states/schoolTestRecords";
 
 function SingleClassTotalScoreCard() {
-  const data = useAllSchoolTestRecordsByClassStore().data;
-  const testData = useSchoolTests().data?.data ?? [];
-  const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const yearClassChosen = useStore(atomClassChosen);
-  const d = useMemo(() => {
-    if (!data || fitnessTestChosen.length === 0 || !yearClassChosen) return null;
-    const year = yearClassChosen.slice(0, 3);
-    const class_ = yearClassChosen.slice(3);
-    const scoresGrades = testData.find(
-      (item) => item.name === fitnessTestChosen[0]
-    )?.mainUploadYearsAndClassesScoresGrades;
-    if (!scoresGrades || !scoresGrades[year]?.[class_]) return null;
-    return scoresGrades[year][class_];
-  }, [data, fitnessTestChosen, yearClassChosen]);
+  const d = useAllSchoolTestRecordsByClassStore().data?.data.card3 ?? null;
   return (
     <div className="flex flex-col col-span-full lg:col-span-6 xl:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">

@@ -47,7 +47,7 @@ function MultipleStudentsTotalGradeChart({
   dataSet,
 }: {
   height?: number;
-  dataSet: { label: string; date: Date; data: [number, number] }[];
+  dataSet: { label: string; date: Date | string; data: [number, number] }[];
 }) {
   const [chart, setChart] = useState<Chart | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -61,7 +61,11 @@ function MultipleStudentsTotalGradeChart({
       labels: labels,
       datasets: dataSet
         // largest to smallest timescale
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .sort(
+          (a, b) =>
+            (b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime()) -
+            (a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime())
+        )
         .map((item, index) => ({
           label: item.label,
           data: item.data,

@@ -1,60 +1,18 @@
-import { useStore } from "@nanostores/react";
-import { useMemo } from "react";
+import type { InferResponseType } from "hono/client";
 import { cn } from "~/lib/utils";
-import {
-  useAllSchoolTestRecordsByClassStore,
-  useAllSchoolTestRecordsByMeStore,
-  atomFitnessTestChosen,
-} from "~/states/schoolTestRecords";
-import { authClient } from "~/utils/betterAuthClient";
+import type { recordRouterClient } from "~/utils/routerClient";
 
-function SingleScoreSingleDateCard({ type }: { type: string }) {
-  const { data: session } = authClient.useSession();
-  const data = useAllSchoolTestRecordsByMeStore().data;
-  const classData = useAllSchoolTestRecordsByClassStore().data;
-  const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const d = useMemo(() => {
-    const r = {
-      score: "--",
-      grade: "--",
-      classAverage: "--",
-    };
-    if (
-      !session ||
-      !data ||
-      !classData ||
-      fitnessTestChosen.length === 0 ||
-      !Object.keys(data).includes(fitnessTestChosen[0]) ||
-      !Object.keys(classData).includes(fitnessTestChosen[0])
-    )
-      return r;
-    r.score =
-      data[fitnessTestChosen[0]].find((m) => m.recordType === type)?.normalizedScore?.toFixed(1) ??
-      "--";
-    r.grade = data[fitnessTestChosen[0]].find((m) => m.recordType === type)?.grade ?? "--";
-    if (
-      session &&
-      session.activeClassifications.length > 0 &&
-      session.activeClassifications[0].year &&
-      session.activeClassifications[0].class
-    ) {
-      const classRecords = classData[fitnessTestChosen[0]]?.[
-        session.activeClassifications[0].year
-      ]?.[session.activeClassifications[0].class]?.filter((m) => m.recordType === type);
-      if (classRecords && classRecords.length > 0) {
-        const classSum = classRecords?.reduce((acc, curr) => {
-          return acc + (curr.normalizedScore ?? 0);
-        }, 0);
-        const classAverage = classSum / classRecords?.length;
-        r.classAverage = classAverage.toFixed(1);
-      }
-    }
-    return r;
-  }, [data, classData, fitnessTestChosen, session]);
+function SingleScoreSingleDateCard({
+  data,
+}: {
+  data: InferResponseType<
+    typeof recordRouterClient.api.records.schoolTest.self.$get
+  >["data"]["singleScore"][number];
+}) {
   return (
     <div className="flex flex-col col-span-full md:col-span-6 lg:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center">
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100">{type}</h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">{data.type}</h2>
       </header>
       <div className="px-5 py-4">
         <div className="flex items-center flex-wrap max-sm:*:w-1/2">
@@ -64,22 +22,22 @@ function SingleScoreSingleDateCard({ type }: { type: string }) {
             </div>
             <div className="flex items-start">
               <div className="text-3xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                {d.score}
+                {data.score}
               </div>
-              {d.grade !== "--" && (
+              {data.grade !== "--" && (
                 <div
                   className={cn(
                     "text-sm font-medium px-1.5 rounded-full",
-                    d.grade === "优秀"
+                    data.grade === "优秀"
                       ? "text-purple-700 bg-purple-500/20"
-                      : d.grade === "良好"
+                      : data.grade === "良好"
                       ? "text-green-700 bg-green-500/20"
-                      : d.grade === "及格"
+                      : data.grade === "及格"
                       ? "text-yellow-700 bg-yellow-500/20"
                       : "text-red-700 bg-red-500/20"
                   )}
                 >
-                  {d.grade}
+                  {data.grade}
                 </div>
               )}
             </div>
@@ -94,7 +52,7 @@ function SingleScoreSingleDateCard({ type }: { type: string }) {
             </div>
             <div className="flex items-start">
               <div className="text-2xl font-bold text-gray-800 dark:text-gray-100 mr-2">
-                {d.classAverage}
+                {data.classAverage}
               </div>
             </div>
           </div>

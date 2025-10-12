@@ -198,14 +198,14 @@ export default async function exportSchoolTestPerYear(
 
   add_student_data_header(aoa);
 
-  add_student_data(aoa, {
+  const sortedDataLength = add_student_data(aoa, {
     records: records_,
     calculatedFinalScorePerStudent: calculatedFinalScorePerStudent_,
   });
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  format(ws);
+  format(ws, sortedDataLength);
 
   XLSX.utils.book_append_sheet(workbook, ws, "成绩报告");
 
@@ -720,9 +720,11 @@ const add_student_data = (
       { t: "s", v: t.finalGrade },
     ];
   }
+
+  return sortedData.length;
 };
 
-const format = (ws: XLSX.WorkSheet) => {
+const format = (ws: XLSX.WorkSheet, sortedDataLength: number) => {
   ws["!merges"] = [
     XLSX.utils.decode_range("B1:E1"),
     XLSX.utils.decode_range("G1:H1"),
@@ -747,7 +749,7 @@ const format = (ws: XLSX.WorkSheet) => {
     { wch: 9 },
     { wch: 15 },
     { wch: 19 },
-    { wch: 24 },
+    { wch: 10 },
     { wch: 24 },
     { wch: 10 },
     { wch: 10 },
@@ -775,4 +777,132 @@ const format = (ws: XLSX.WorkSheet) => {
   ];
 
   ws["!cols"] = column_widths;
+
+  for (const col of [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+  ]) {
+    for (const row of ["1", "2", "3", "4", "5", "6"]) {
+      ws[`${col}${row}`] = {
+        ...(ws[`${col}${row}`] || {
+          t: "s",
+          v: "",
+        }),
+        s: {
+          font: {
+            bold: true,
+          },
+          alignment: {
+            horizontal: "center",
+            vertical: "center",
+          },
+          border: {
+            top: {
+              style: "thin",
+              color: "#000000",
+            },
+            bottom: {
+              style: "thin",
+              color: "#000000",
+            },
+            left: {
+              style: "thin",
+              color: "#000000",
+            },
+            right: {
+              style: "thin",
+              color: "#000000",
+            },
+          },
+        },
+      };
+    }
+  }
+
+  for (const col of [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "AA",
+    "AB",
+    "AC",
+    "AD",
+    "AE",
+    "AF",
+    "AG",
+    "AH",
+  ]) {
+    for (const row of Array.from({ length: sortedDataLength + 1 }, (_, i) => i + 8).map(String)) {
+      ws[`${col}${row}`] = {
+        ...(ws[`${col}${row}`] || {
+          t: "s",
+          v: "",
+        }),
+        s: {
+          border: {
+            top: {
+              style: "thin",
+              color: "#000000",
+            },
+            bottom: {
+              style: "thin",
+              color: "#000000",
+            },
+            left: {
+              style: "thin",
+              color: "#000000",
+            },
+            right: {
+              style: "thin",
+              color: "#000000",
+            },
+          },
+        },
+      };
+    }
+  }
 };

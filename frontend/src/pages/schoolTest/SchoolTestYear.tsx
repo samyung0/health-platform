@@ -21,6 +21,8 @@ import {
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
 import { useStore } from "@nanostores/react";
+import PageNotFound from "~/pages/utility/PageNotFound";
+import { getPermission } from "~/lib/utils";
 
 // const testData = [
 //   {
@@ -60,13 +62,22 @@ function Dashboard() {
   const { yearAvailable } = useSchoolTestYearAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
   const yearChosen = useStore(atomYearChosen);
-  const data = useAllSchoolTestRecordsByYearStore().data;
+  const data = useAllSchoolTestRecordsByYearStore();
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
     [fitnessTestAvailable.length]
   );
 
+  const { canSeeWholeYear } = useMemo(() => getPermission(session), [session]);
+
   if (!session) return <div>加载中 ...</div>;
+
+  if (!canSeeWholeYear) {
+    return <PageNotFound />;
+  }
+
+  const isEnabled = data.isEnabled;
+  const hasData = data.data !== undefined;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -157,20 +168,29 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            {!data && (
+            {!hasData && !isEnabled && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                请选择体测
+              </div>
+            )}
+            {!hasData && isEnabled && (
               <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
                 加载中 ...
               </div>
             )}
-            {data && (
+            {hasData && (
               <div className="grid grid-cols-12 gap-6">
                 <SingleYearTotalParticipationCard />
                 <SingleYearTotalGradeCard />
                 <SingleYearTotalScoreCard />
-                {FRONTEND_EXERCISE_TYPES.map((type) => {
-                  if (type === "50米×8往返跑" && yearChosen !== "五年级" && yearChosen !== "六年级")
+                {data.data!.card4.map((d) => {
+                  if (
+                    d.type === "50米×8往返跑" &&
+                    yearChosen !== "五年级" &&
+                    yearChosen !== "六年级"
+                  )
                     return null;
-                  return <SingleYearDetailGradeDonutCard key={type} type={type} />;
+                  return <SingleYearDetailGradeDonutCard key={d.type} d={d} />;
                 })}
               </div>
             )}

@@ -1,12 +1,5 @@
-import { useStore } from "@nanostores/react";
-import { useMemo } from "react";
 import { cn } from "~/lib/utils";
-import {
-  useAllSchoolTestRecordsByClassStore,
-  useAllSchoolTestRecordsByMeStore,
-  atomFitnessTestChosen,
-} from "~/states/schoolTestRecords";
-import { authClient } from "~/utils/betterAuthClient";
+import { useAllSchoolTestRecordsByMeStore } from "~/states/schoolTestRecords";
 
 const measureTypeName = "体重指数（BMI）（千克/米2）";
 // const score = 23.5;
@@ -16,56 +9,14 @@ const measureTypeName = "体重指数（BMI）（千克/米2）";
 // const classAverage = 28.5;
 // const classGrade = "超重" as (typeof GRADING_SCALE_BMI_KEYS)[number];
 function SingleScoreSingleDateCard() {
-  const { data: session } = authClient.useSession();
-  const data = useAllSchoolTestRecordsByMeStore().data;
-  const classData = useAllSchoolTestRecordsByClassStore().data;
-  const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const d = useMemo(() => {
-    const r = {
-      score: "--",
-      grade: "--",
-      height: "--",
-      weight: "--",
-      classAverage: "--",
-    };
-    if (
-      !session ||
-      !data ||
-      !classData ||
-      fitnessTestChosen.length === 0 ||
-      !Object.keys(data).includes(fitnessTestChosen[0]) ||
-      !Object.keys(classData).includes(fitnessTestChosen[0])
-    )
-      return r;
-    r.score =
-      data[fitnessTestChosen[0]]
-        .find((m) => m.recordType === "体重指数（BMI）")
-        ?.score?.toFixed(1) ?? "--";
-    r.grade =
-      data[fitnessTestChosen[0]].find((m) => m.recordType === "体重指数（BMI）")?.grade ?? "--";
-    r.height =
-      data[fitnessTestChosen[0]].find((m) => m.recordType === "身高")?.score?.toFixed(1) ?? "--";
-    r.weight =
-      data[fitnessTestChosen[0]].find((m) => m.recordType === "体重")?.score?.toFixed(1) ?? "--";
-    if (
-      session &&
-      session.activeClassifications.length > 0 &&
-      session.activeClassifications[0].year &&
-      session.activeClassifications[0].class
-    ) {
-      const bmiRecords = classData[fitnessTestChosen[0]]?.[session.activeClassifications[0].year]?.[
-        session.activeClassifications[0].class
-      ]?.filter((m) => m.recordType === "体重指数（BMI）");
-      if (bmiRecords && bmiRecords.length > 0) {
-        const classSum = bmiRecords?.reduce((acc, curr) => {
-          return acc + (curr.score ?? 0);
-        }, 0);
-        const classAverage = classSum / bmiRecords?.length;
-        r.classAverage = classAverage.toFixed(1);
-      }
-    }
-    return r;
-  }, [data, classData, fitnessTestChosen, session]);
+  const data = useAllSchoolTestRecordsByMeStore().data?.data.bmi;
+  const d = data || {
+    height: "--",
+    weight: "--",
+    score: "--",
+    grade: "--",
+    classAverage: "--",
+  };
   return (
     <div className="flex flex-col col-span-full xl:col-span-6 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
       <header className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center">

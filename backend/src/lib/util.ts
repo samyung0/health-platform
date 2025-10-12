@@ -286,7 +286,12 @@ export const getQueryableYearsAndClasses = async (
   session: Session,
   entityType: EntityType
 ): Promise<Record<string, string[]>> => {
-  if (entityType === "student" || entityType === "parent") {
+  if (
+    session.activeClassifications.length === 0 ||
+    (!session.activeClassifications[0].canAccessSchoolInClassification &&
+      !session.activeClassifications[0].canAccessYearInClassification &&
+      !session.activeClassifications[0].canAccessClassInClassification)
+  ) {
     return {};
   }
   const [permission_] = await db
@@ -402,4 +407,36 @@ export const getWeightedSum = (score: number, type: string, schoolType: string, 
     default:
       return 0;
   }
+};
+
+export const getPermission = (session: Session | null) => {
+  const ret = {
+    canSeeWholeSchool: false,
+    canSeeWholeYear: false,
+    canSeeWholeClass: false,
+    canSeeSelf: false,
+    canUploadSchoolTest: false,
+    canUploadStudentInfo: false,
+  };
+  if (!session) return ret;
+  ret.canSeeWholeSchool =
+    session.activeClassifications.length > 0 &&
+    session.activeClassifications[0].canAccessSchoolInClassification;
+  ret.canSeeWholeYear =
+    session.activeClassifications.length > 0 &&
+    (session.activeClassifications[0].canAccessYearInClassification ||
+      session.activeClassifications[0].canAccessSchoolInClassification);
+  ret.canSeeWholeClass =
+    session.activeClassifications.length > 0 &&
+    (session.activeClassifications[0].canAccessClassInClassification ||
+      session.activeClassifications[0].canAccessSchoolInClassification ||
+      session.activeClassifications[0].canAccessYearInClassification);
+  ret.canSeeSelf = !ret.canSeeWholeSchool && !ret.canSeeWholeYear && !ret.canSeeWholeClass;
+  ret.canUploadSchoolTest =
+    session.activeClassifications.length > 0 &&
+    session.activeClassifications[0].canUploadSchoolTest;
+  ret.canUploadStudentInfo =
+    session.activeClassifications.length > 0 &&
+    session.activeClassifications[0].canUploadStudentInfo;
+  return ret;
 };

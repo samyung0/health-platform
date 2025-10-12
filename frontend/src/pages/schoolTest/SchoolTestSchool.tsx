@@ -20,6 +20,8 @@ import {
 import { getChartColor } from "~/utils/Utils";
 import { authClient } from "~/utils/betterAuthClient";
 import { useStore } from "@nanostores/react";
+import PageNotFound from "~/pages/utility/PageNotFound";
+import { getPermission } from "~/lib/utils";
 
 // const testData = [
 //   {
@@ -41,14 +43,23 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { fitnessTestAvailable } = useSchoolTestFitnessTestAvailable();
   const fitnessTestChosen = useStore(atomFitnessTestChosen);
-  const data = useAllSchoolTestRecordsBySchoolStore().data;
+  const data = useAllSchoolTestRecordsBySchoolStore();
 
   const [colors] = useMemo(
     () => getChartColor(fitnessTestAvailable.length),
     [fitnessTestAvailable.length]
   );
 
+  const { canSeeWholeSchool } = useMemo(() => getPermission(session), [session]);
+
   if (!session) return <div>加载中 ...</div>;
+
+  if (!canSeeWholeSchool) {
+    return <PageNotFound />;
+  }
+
+  const isEnabled = data.isEnabled;
+  const hasData = data.data !== undefined;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -127,20 +138,27 @@ function Dashboard() {
             </div>
 
             {/* Cards */}
-            {!data && (
+            {!hasData && !isEnabled && (
+              <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
+                请选择体测
+              </div>
+            )}
+            {!hasData && isEnabled && (
               <div className="flex items-center justify-center py-24 px-12 w-full overflow-hidden bg-white dark:bg-gray-800 shadow-xs">
                 加载中 ...
               </div>
             )}
-            {data && (
+            {hasData && (
               <div className="grid grid-cols-12 gap-6">
                 <SingleSchoolTotalParticipationCard />
                 <SingleSchoolTotalGradeCard />
                 <SingleSchoolTotalScoreCard />
                 <SingleSchoolTotalYearParticipationCard />
                 <SingleSchoolTotalYearPassingRateCard />
-                {FRONTEND_EXERCISE_TYPES.map((type) => {
-                  return <SingleClassDetailGradeBarCard key={type} type={type} />;
+                {data.data!.card4.map((d) => {
+                  return (
+                    <SingleClassDetailGradeBarCard key={d.type} d={d} years={data.data!.years} />
+                  );
                 })}
               </div>
             )}

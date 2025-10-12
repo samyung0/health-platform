@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import { EXPECTED_HEADERS_FROM_SCHOOL_STUDENTS_EXPORT } from "~/lib/const";
 import { cn, mapYearToChineseFrontend } from "~/lib/utils";
 import { useAllSchoolData } from "~/states/schoolData";
+import { queryClient } from "~/utils/QueryClient";
 import { fileRouterClient } from "~/utils/routerClient";
 
 export default function UploadStudentInfoDialog({
@@ -554,6 +555,15 @@ export default function UploadStudentInfoDialog({
                         if (!response.ok || !d.data) {
                           setSubmitError((d as any).message ?? "系统错误");
                         } else {
+                          queryClient.invalidateQueries({
+                            queryKey: ["session", "fileProcesses"],
+                          });
+                          queryClient.invalidateQueries({
+                            queryKey: ["session", "allSchoolData"],
+                          });
+                          queryClient.invalidateQueries({
+                            queryKey: ["session", "queryableSchoolData"],
+                          });
                           setRequest({
                             file: undefined,
                             from: "",

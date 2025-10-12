@@ -1,8 +1,16 @@
-import { db } from "@/db";
+import * as schema from "@/db/schema";
 import { classification, classificationMap, permission, school } from "@/db/schema";
+import env from "@/env-runtime";
 import { auth } from "@/lib/auth";
+import { drizzle } from "drizzle-orm/node-postgres";
 
 async function main() {
+  const db = drizzle({
+    // logger: true,
+    connection: env.DATABASE_URL!,
+    casing: "snake_case",
+    schema,
+  });
   const [school_] = await db
     .insert(school)
     .values({
@@ -29,6 +37,8 @@ async function main() {
     canAccessYearInClassification: true,
     canAccessSameEntityInternalIdInClassification: true,
     canAccessChildEntityInternalIdInClassification: true,
+    canUploadSchoolTest: true,
+    canUploadStudentInfo: true,
   });
   const [classification_] = await db
     .insert(classification)

@@ -7,7 +7,7 @@ import * as schema from "@/db/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 
 console.log("DATABASE_URL", env.DATABASE_URL);
-export const db = drizzle({
+const db = drizzle({
   // logger: true,
   connection: env.DATABASE_URL!,
   casing: "snake_case",
@@ -41,6 +41,8 @@ async function main() {
     canAccessYearInClassification: true,
     canAccessSameEntityInternalIdInClassification: true,
     canAccessChildEntityInternalIdInClassification: true,
+    canUploadSchoolTest: true,
+    canUploadStudentInfo: true,
   });
   const [classification_] = await db
     .insert(classification)

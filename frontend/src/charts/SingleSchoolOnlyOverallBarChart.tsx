@@ -64,7 +64,7 @@ function SingleStudentOnlyOverallBarChart({
 }: {
   height?: number;
   entity: string[];
-  dataFetched: { label: string; date: Date; data: number[] }[];
+  dataFetched: { label: string; date: Date | string; data: number[] }[];
 }) {
   const [chart, setChart] = useState<Chart | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -92,7 +92,11 @@ function SingleStudentOnlyOverallBarChart({
       labels: entity,
       datasets: dataFetched
         // largest to smallest timescale
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .sort(
+          (a, b) =>
+            (b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime()) -
+            (a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime())
+        )
         .map((item, index) => ({
           label: item.label,
           data: item.data,

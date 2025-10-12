@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import Sidebar from "~/partials/Sidebar";
 import Header from "~/partials/Header";
-import { cn } from "~/lib/utils";
+import { cn, getPermission } from "~/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "~/components/ui/calendar";
@@ -10,6 +10,8 @@ import SingleTotalCard from "~/partials/schoolExerciseSelf/SingleTotalCard";
 import SingleStudentOnlyOverallLineCard from "~/partials/schoolExerciseSelf/SingleStudentOnlyOverallLineCard";
 import SingleStudentOnlyBMILineCard from "~/partials/schoolExerciseSelf/SingleStudentOnlyBMILineCard";
 import SingleStudentOnlyAnyCard from "~/partials/schoolExerciseSelf/SingleStudentOnlyAnyCard";
+import { authClient } from "~/utils/betterAuthClient";
+import PageNotFound from "~/pages/utility/PageNotFound";
 
 // TODO display something when this person did not participate
 
@@ -19,6 +21,13 @@ function Dashboard() {
   const [date, setDate] = useState<{ from: Date | undefined; to?: Date | undefined } | undefined>(
     undefined
   );
+
+  const { data: session } = authClient.useSession();
+  const { canSeeSelf } = useMemo(() => getPermission(session), [session]);
+
+  if (!canSeeSelf) {
+    return <PageNotFound />;
+  }
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
