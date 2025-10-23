@@ -5,6 +5,7 @@ import { checkValidClassification } from "@/lib/util";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
+  bearer,
   createAuthMiddleware,
   customSession,
   openAPI,
@@ -124,6 +125,7 @@ export const auth = betterAuth({
         allClassifications: sessionData,
       } as Session;
     }),
+    bearer(),
     openAPI(),
   ],
   hooks: {
